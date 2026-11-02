@@ -27,6 +27,7 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 | `saves/<save>/staff/*.csv` | Staff observations: `<YYYY-MM-DD>_<source>.csv` (`search-coach`). Append-only. |
 | `weights/<name>.toml` | Position weights (`[outfield.*]`, `[gk]`), age benchmarks, and staff scoring: `[staff_words]` (FM's words → numbers) and `[staff.<role>]` (the role's column label, then attribute weights). |
 | `weights/<name>_staff.md` | Notes on the staff weights: sources, FM27 key attributes, calibration. |
+| `fm/` | FM27 views (`*ViewCollection/*.json`) and search filters (`player search filters/`, `staff search filters/`, `.fmf`), laid out like FM's own data folder. |
 | `score.py` | `python3 score.py [--save S] [--open PAGE]` → `out/<save>/*.html`. Also `init` (first-time setup) and `screenshots` (list new ones). Stdlib only. |
 | `template.html` | Pages 1–4, 6–9. Its `?` overlay is the reference for keys and filter syntax. |
 | `charts.html` | Page 5: hand-drawn SVG charts. |
@@ -110,8 +111,12 @@ words, one step at a time, no jargon, and do the typing for them. `README.md` is
    `saves/<slug of club>/save.toml` (`weights` = the newest `weights/*.toml`, `managed_club`, `short_name`, `division`,
    `last_batch = []`, `last_staff_batch = []`), and create its `obs/` and `staff/` folders.
    Check the screenshots folder exists.
-3. **FM views:** tell them the columns README's step 5 lists. The attributes come from the weights file, so if it's not
-   `fm27`, list that file's instead.
+3. **FM views:** offer to install the views and filters in `fm/`. Ask them to quit FM first. Find FM's data folder: Mac
+   `~/Library/Application Support/Sports Interactive/Football Manager 27`. On Windows, look under `Documents\Sports Interactive`
+   and `%LOCALAPPDATA%\Sports Interactive` for the `Football Manager 27` folder that contains `PlayerSearchResultsViewCollection`;
+   if you can't find it, ask. Copy each subfolder of `fm/` into the matching folder there, creating any that are missing.
+   Never overwrite a file of the same name without asking. If they decline, tell them the columns README's step 5 lists.
+   The attributes come from the weights file, so if it's not `fm27`, list that file's instead (and the views may need editing).
 4. **First screenshots:** their squad screen with the outfield view, scrolling to cover everyone, then the GK view, with FM's
    date and their crest in shot. When they say "new screenshots", follow "Adding screenshots" below.
 5. Commit the new save.

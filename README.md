@@ -75,18 +75,28 @@ It saves your answers, so you only do this once per save.
 
 ### 5. Set up your views in FM
 
-The assistant only knows what your screenshots show, so FM's player lists need the right columns. The assistant
-will tell you which columns to add. In FM, you choose a list's columns from the view options above it.
-Make three views and save each one:
+The assistant only knows what your screenshots show, so FM's player lists need the right columns. This project
+comes with ready-made FM views and search filters (in the `fm` folder), and the assistant offers to install them
+for you. **Close FM first**, then reopen it afterwards so it picks them up.
 
-- **Outfield:** Name, Club, Age, Left Foot, Wage, Transfer Value, plus Acceleration, Anticipation, Composure,
-  Decisions, Dribbling, Finishing, First Touch, Heading, Jumping Reach, Off The Ball, Pace, Passing, Positioning,
-  Stamina, Strength, Tackling, Teamwork and Work Rate. When you're screenshotting a whole league for the
-  charts page, also add Minutes, Average Rating and Division.
-- **Goalkeepers:** Name, Club, Age, Left Foot, Wage, Transfer Value, plus Acceleration, Aerial Reach, Agility,
-  Anticipation, Command of Area, Communication, Composure, Concentration, Decisions, Handling, Kicking,
-  One on Ones, Passing, Positioning, Reflexes and Throwing.
-- **Staff (optional):** Person, Preferred Job, Club, Personality, and the staff attributes.
+| View | Use it on | Columns |
+|---|---|---|
+| `attribs_outfield` | your squad screen | Name, Age, Left Foot, Wage and the outfield attributes |
+| `attribs_gk` | your squad screen | Name, Age, Left Foot, Wage and the goalkeeping attributes |
+| `player_search_outfield` | player search, shortlists | adds Club and Transfer Value |
+| `player_search_gk` | player search, shortlists | the same for goalkeepers |
+| `division_outfield` / `division_gk` | a whole league, for the charts page | adds Division, Minutes and Average Rating |
+| `staff_everything` | staff search | Person, Preferred Job, Club, Personality and every staff attribute |
+
+In FM, you pick a list's view from the view options above it. The search filters (player positions such as
+`cb` and `wb left`, staff jobs such as `physio` and `scout`) show up in FM's search screens under their file names.
+
+If you'd rather make the views yourself, these are the attributes they need:
+
+- **Outfield:** Acceleration, Anticipation, Composure, Decisions, Dribbling, Finishing, First Touch, Heading,
+  Jumping Reach, Off The Ball, Pace, Passing, Positioning, Stamina, Strength, Tackling, Teamwork and Work Rate.
+- **Goalkeepers:** Acceleration, Aerial Reach, Agility, Anticipation, Command of Area, Communication, Composure,
+  Concentration, Decisions, Handling, Kicking, One on Ones, Passing, Positioning, Reflexes and Throwing.
 
 ### 6. Take your first screenshots
 
