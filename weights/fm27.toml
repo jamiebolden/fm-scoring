@@ -1,0 +1,291 @@
+# Player scoring weights for FM27: fm26.toml with Jumping renamed to Jumping Reach, then adjusted toward
+# harvestgreen22's FM27 attribute test (fm-arena thread 20925): fewer mental/technical 3s, more Stamina/Work Rate/Strength.
+# Score = sum(attribute * weight) / sum(weights). Attributes not listed count as 0.
+
+[outfield.CB]
+Acceleration = 5
+Anticipation = 3
+Composure = 2
+Decisions = 1
+"First Touch" = 1
+Heading = 3
+"Jumping Reach" = 5
+Pace = 5
+Passing = 2
+Positioning = 2
+Stamina = 1
+Strength = 3
+Tackling = 1
+"Work Rate" = 1
+
+[outfield."WB/6"]
+Acceleration = 5
+Anticipation = 3
+Composure = 1
+Decisions = 1
+Dribbling = 3
+"First Touch" = 1
+Pace = 5
+Passing = 2
+Positioning = 2
+Stamina = 5
+Strength = 1
+Tackling = 1
+Teamwork = 2
+"Work Rate" = 4
+
+[outfield.10]
+Acceleration = 5
+Anticipation = 3
+Composure = 2
+Decisions = 1
+Dribbling = 5
+Finishing = 1
+"First Touch" = 1
+"Off The Ball" = 2
+Pace = 5
+Passing = 2
+Stamina = 2
+Strength = 1
+Teamwork = 1
+"Work Rate" = 2
+
+[outfield.9]
+Acceleration = 5
+Anticipation = 3
+Composure = 2
+Decisions = 1
+Dribbling = 3
+Finishing = 3
+"First Touch" = 1
+Heading = 1
+"Jumping Reach" = 5
+"Off The Ball" = 2
+Pace = 5
+Stamina = 2
+Strength = 1
+Teamwork = 1
+"Work Rate" = 2
+
+[gk]
+Acceleration = 3
+Anticipation = 1
+"Aerial Reach" = 3
+Agility = 5
+"Command of Area" = 2
+Communication = 1
+Composure = 1
+Concentration = 1
+Decisions = 1
+Handling = 0.5
+Kicking = 0.5
+"One on Ones" = 1
+Passing = 1
+Positioning = 2
+Reflexes = 5
+Throwing = 0.5
+
+# Expected best-position score by age; "vs Age" = best score / benchmark.
+# Ages above the highest listed use the highest; below the lowest use the lowest.
+[age_benchmark]
+15 = 10.3
+16 = 10.9
+17 = 11.5
+18 = 12.2
+19 = 12.6
+20 = 12.9
+21 = 13.2
+22 = 13.4
+23 = 13.7
+24 = 13.8
+
+# Staff: FM shows staff attributes as words; each counts as the midpoint of its 1-20 range.
+# Role score = sum(value * weight) / sum(weights). Notes and sources: fm27_staff.md.
+[staff_words]
+Elite = 20
+Outstanding = 18.5
+"Very Good" = 16
+Good = 13
+Average = 10.5
+Competent = 8
+Reasonable = 5
+Unsuited = 2
+
+# Each staff role's full name, shown beside its short label (the [staff.<label>] tables below)
+[staff_names]
+Mgr = "Manager"
+AM = "Assistant Manager"
+HoYD = "Head of Youth Development"
+AttTct = "Coach: Attacking Tactical"
+AttTec = "Coach: Attacking Technical"
+DefTct = "Coach: Defending Tactical"
+DefTec = "Coach: Defending Technical"
+PosTct = "Coach: Possession Tactical"
+PosTec = "Coach: Possession Technical"
+GKC = "Coach: Goalkeeping"
+FitC = "Coach: Fitness"
+SetC = "Coach: Set Pieces"
+DoF = "Director of Football"
+Scout = "Scout"
+PA = "Performance Analyst"
+Physio = "Physio"
+SpSci = "Sports Scientist"
+
+[staff.Mgr]  # Manager
+"Judging Player Ability" = 4
+Motivating = 4
+"People Management" = 4
+"Tactical Knowledge" = 4
+Attacking = 3
+Defending = 3
+Determination = 3
+"Judging Player Potential" = 3
+Possession = 3
+Tactical = 3
+Technical = 3
+"Working With Youngsters" = 1
+
+[staff.AM]  # Assistant Manager
+"Judging Player Ability" = 4
+Motivating = 4
+"People Management" = 4
+Determination = 3
+"Judging Player Potential" = 3
+"Tactical Knowledge" = 3
+Attacking = 2
+Defending = 2
+Possession = 2
+Tactical = 2
+Technical = 2
+"Working With Youngsters" = 1
+
+[staff.HoYD]  # Head of Youth Development
+"Judging Player Ability" = 4
+"Judging Player Potential" = 4
+"Working With Youngsters" = 4
+Attacking = 1
+Defending = 1
+Determination = 1
+Motivating = 1
+"People Management" = 1
+Possession = 1
+Tactical = 1
+Technical = 1
+Fitness = 1
+"Tactical Knowledge" = 1
+
+[staff.AttTct]  # Coach: Attacking Tactical
+Attacking = 4
+Tactical = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+"People Management" = 1
+"Working With Youngsters" = 1
+
+[staff.AttTec]  # Coach: Attacking Technical
+Attacking = 4
+Technical = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+"People Management" = 1
+"Working With Youngsters" = 1
+
+[staff.DefTct]  # Coach: Defending Tactical
+Defending = 4
+Tactical = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+"People Management" = 1
+"Working With Youngsters" = 1
+
+[staff.DefTec]  # Coach: Defending Technical
+Defending = 4
+Technical = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+"People Management" = 1
+"Working With Youngsters" = 1
+
+[staff.PosTct]  # Coach: Possession Tactical
+Possession = 4
+Tactical = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+"People Management" = 1
+"Working With Youngsters" = 1
+
+[staff.PosTec]  # Coach: Possession Technical
+Possession = 4
+Technical = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+"People Management" = 1
+"Working With Youngsters" = 1
+
+[staff.GKC]  # Coach: Goalkeeping
+Goalkeeping = 4
+Motivating = 3
+Authority = 2
+Determination = 2
+"People Management" = 2
+Possession = 2
+"Working With Youngsters" = 1
+
+[staff.FitC]  # Coach: Fitness
+Fitness = 4
+Motivating = 3
+Authority = 2
+Determination = 2
+"People Management" = 2
+"Working With Youngsters" = 1
+
+[staff.SetC]  # Coach: Set Pieces
+"Set Pieces" = 4
+Authority = 2
+Determination = 2
+Motivating = 2
+Tactical = 2
+"People Management" = 1
+Technical = 1
+"Working With Youngsters" = 1
+
+[staff.DoF]  # Director of Football
+"Judging Player Ability" = 4
+"Judging Player Potential" = 4
+"People Management" = 1
+Determination = 1
+Motivating = 1
+"Tactical Knowledge" = 1
+
+[staff.Scout]  # Scout
+"Judging Player Ability" = 4
+"Judging Player Potential" = 4
+"Tactical Knowledge" = 2
+Determination = 2
+
+[staff.PA]  # Performance Analyst
+"Analysing Data" = 4
+"Judging Player Ability" = 3
+Determination = 1
+"Tactical Knowledge" = 2
+
+[staff.Physio]  # Physio
+Physiotherapy = 4
+Determination = 2
+Motivating = 2
+"People Management" = 2
+"Sports Science" = 2
+
+[staff.SpSci]  # Sports Scientist
+"Sports Science" = 4
+Determination = 2
+Fitness = 2
+Motivating = 2
+"People Management" = 2
+Physiotherapy = 2

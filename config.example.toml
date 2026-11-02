@@ -1,0 +1,5 @@
+# Settings for this computer: copy to config.toml, or run `python3 score.py init`.
+# The settings page (key 9) shows them.
+active_save = "my-club"            # saves/<this>/save.toml
+screenshots_dir = "~/Desktop"      # where your screenshots are saved (Windows: "~/Pictures/Screenshots")
+currency = "£"                     # the money symbol FM shows

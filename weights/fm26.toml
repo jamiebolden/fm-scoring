@@ -1,0 +1,94 @@
+# Player scoring weights.
+# Score = sum(attribute * weight) / sum(weights). Attributes not listed count as 0.
+
+[outfield.CB]
+Acceleration = 5
+Anticipation = 3
+Composure = 3
+Decisions = 1
+"First Touch" = 1
+Heading = 3
+Jumping = 5
+Pace = 5
+Passing = 3
+Positioning = 3
+Strength = 3
+Tackling = 1
+
+[outfield."WB/6"]
+Acceleration = 5
+Anticipation = 3
+Composure = 1
+Decisions = 1
+Dribbling = 3
+"First Touch" = 1
+Pace = 5
+Passing = 3
+Positioning = 3
+Stamina = 5
+Tackling = 1
+Teamwork = 3
+"Work Rate" = 5
+
+[outfield.10]
+Acceleration = 5
+Anticipation = 3
+Composure = 3
+Decisions = 1
+Dribbling = 5
+Finishing = 1
+"First Touch" = 1
+"Off The Ball" = 3
+Pace = 5
+Passing = 3
+Stamina = 1
+Teamwork = 1
+"Work Rate" = 1
+
+[outfield.9]
+Acceleration = 5
+Anticipation = 3
+Composure = 3
+Decisions = 1
+Dribbling = 3
+Finishing = 3
+"First Touch" = 1
+Heading = 1
+Jumping = 5
+"Off The Ball" = 3
+Pace = 5
+Stamina = 1
+Teamwork = 1
+"Work Rate" = 1
+
+[gk]
+Acceleration = 3
+Anticipation = 1
+"Aerial Reach" = 3
+Agility = 5
+"Command of Area" = 2
+Communication = 1
+Composure = 1
+Concentration = 1
+Decisions = 1
+Handling = 0.5
+Kicking = 0.5
+"One on Ones" = 1
+Passing = 1
+Positioning = 2
+Reflexes = 5
+Throwing = 0.5
+
+# Expected best-position score by age; "vs Age" = best score / benchmark.
+# Ages above the highest listed use the highest; below the lowest use the lowest.
+[age_benchmark]
+15 = 10.3
+16 = 10.9
+17 = 11.5
+18 = 12.2
+19 = 12.6
+20 = 12.9
+21 = 13.2
+22 = 13.4
+23 = 13.7
+24 = 13.8
