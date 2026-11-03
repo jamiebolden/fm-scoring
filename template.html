@@ -169,6 +169,7 @@ function render() {
     if (c.fmt === "money") return `<td class="num${at}">${FMT.money(v)}</td>`;
     if (c.fmt === "range") return `<td class="num${at}">${r.valueLo === v ? FMT.money(v) : FMT.money(r.valueLo) + "–" + FMT.money(v)}</td>`;
     if (c.fmt === "yesno") return `<td class="${v === "yes" ? "t4" : "dim"}${at}">${v}</td>`;
+    if (c.fmt === "afford") return `<td class="${{ yes: "t4", maybe: "t2", no: "t0" }[v] || "dim"}${at}">${v}</td>`;
     if (c.fmt) return `<td class="num ${tier(v, RANGE[c.fmt])}${at}">${FMT[c.fmt](v)}</td>`;
     if (c.key === "name") return `<td class="${at}">${v}${r.loan ? `<span class="loan ${r.loan}">${loanLabel(r)}</span>` : ""}</td>`;
     return `<td class="${c.num ? "num" : "text"}${at}">${v}</td>`;

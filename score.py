@@ -119,9 +119,23 @@ def player_row(name, p, w):
     }
 
 
-def player_cols(w, with_club):
+def afford(row, transfer_budget, wage_budget):
+    """yes / maybe / no against save.toml's budgets: the fee (FM's value range, nothing for a free agent) and the
+    current wage. maybe = only at the low end of the value range; ? = value or wage unknown."""
+    if row["club"] == "Free agent":
+        fee = "yes"
+    elif row["value"] is None:
+        fee = "?"
+    else:
+        fee = "yes" if row["value"] <= transfer_budget else "maybe" if row["valueLo"] <= transfer_budget else "no"
+    wage = "?" if row["wage"] is None else "yes" if row["wage"] <= wage_budget else "no"
+    return min(fee, wage, key=["no", "maybe", "?", "yes"].index)
+
+
+def player_cols(w, with_club, budgets=False):
     wage = {"key": "wage", "label": "Wage", "num": True, "fmt": "money"}
-    club = [{"key": "club", "label": "Club"}, wage, {"key": "value", "label": "Value", "num": True, "fmt": "range"}]
+    club = [{"key": "club", "label": "Club"}, wage, {"key": "value", "label": "Value", "num": True, "fmt": "range"},
+            *([{"key": "afford", "label": "Afford", "fmt": "afford"}] if budgets else [])]
     return [
         {"key": "name", "label": "Player"},
         *(club if with_club else []),
@@ -259,6 +273,12 @@ def build(save, config):
             r["club"] = f"left {managed}"
     squad = [r for r in rows if r["club"] == managed]
 
+    # Optional save.toml transfer_budget / wage_budget ("€0", "€12.75K"): adds an Afford column to the other players
+    budgets = "transfer_budget" in cfg and "wage_budget" in cfg
+    if budgets:
+        for r in rows:
+            r["afford"] = afford(r, money(cfg["transfer_budget"]) or 0, money(cfg["wage_budget"]) or 0)
+
     roles = w.get("staff", {})
     staff = load_staff(save_dir / "staff", w.get("staff_words", {}))
     staff_rows = [staff_row(n, p, roles) for n, p in staff.items()]
@@ -272,9 +292,9 @@ def build(save, config):
 
     return cfg, {
         "squad": (player_cols(w, False), squad),
-        "elsewhere": (player_cols(w, True), [r for r in rows if r["club"] != managed]),
+        "elsewhere": (player_cols(w, True, budgets), [r for r in rows if r["club"] != managed]),
         # a screenshot of just names (e.g. a shortlist) picks players already observed; otherwise the batch's files
-        "last": (player_cols(w, True), [r for r in rows if r["name"] in last_names] if last_names
+        "last": (player_cols(w, True, budgets), [r for r in rows if r["name"] in last_names] if last_names
                  else [r for r in rows if players[r["name"]]["files"] & last_batch]),
         "filters": ([], filters(squad, w)),
         "charts": ([], charts(rows, squad, w, cfg)),
