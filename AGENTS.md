@@ -27,7 +27,7 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 | `saves/<save>/staff/*.csv` | Staff observations: `<YYYY-MM-DD>_<source>.csv` (`search-coach`). Append-only. |
 | `weights/<name>.toml` | Position weights (`[outfield.*]`, `[gk]`), age benchmarks, and staff scoring: `[staff_words]` (FM's words → numbers) and `[staff.<role>]` (the role's column label, then attribute weights). |
 | `weights/<name>_staff.md` | Notes on the staff weights: sources, FM27 key attributes, calibration. |
-| `fm/` | FM27 views (`*ViewCollection/*.json`) and search filters (`player search filters/`, `staff search filters/`, `.fmf`), laid out like FM's own data folder. |
+| `fm/` | FM27 views (`*ViewCollection/*.json`) search filters (`player search filters/`, `staff search filters/`, `.fmf`) and exported views (`views/`, `.fmf`), laid out like FM's own data folder. |
 | `score.py` | `python3 score.py [--save S] [--open PAGE]` → `out/<save>/*.html`. Also `init` (first-time setup) and `screenshots` (list new ones). Stdlib only. |
 | `template.html` | Pages 1–4, 6–9. Its `?` overlay is the reference for keys and filter syntax. |
 | `charts.html` | Page 5: hand-drawn SVG charts. |

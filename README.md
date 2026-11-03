@@ -88,7 +88,8 @@ for you. **Close FM first**, then reopen it afterwards so it picks them up.
 | `division_outfield` / `division_gk` | a whole league, for the charts page | adds Division, Minutes and Average Rating |
 | `staff_everything` | staff search | Person, Preferred Job, Club, Personality and every staff attribute |
 
-In FM, you pick a list's view from the view options above it. The search filters (player positions such as
+In FM, you pick a list's view from the view options above it. The same views are also in `fm/views` as `.fmf`
+files, which you can load from the view options' import option if copying the folders doesn't work for you. The search filters (player positions such as
 `cb` and `wb left`, staff jobs such as `physio` and `scout`) show up in FM's search screens under their file names.
 
 If you'd rather make the views yourself, these are the attributes they need:
