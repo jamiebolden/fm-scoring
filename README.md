@@ -204,6 +204,7 @@ ask it to "switch to my <club> save".
 
 Each position has a list of attributes that matter for it, each with a weight. A player's position score is the
 weighted average of those attributes, on FM's 1–20 scale. **vs Age** compares their best score with what's
-typical for their age: 100% means on track, more means ahead.
+typical for their age: 100% means they're on track to be a high-end Championship or low-end Premier League
+player in their prime, once fully developed. More than 100% means they're ahead of that.
 
 The weights are in the `weights` folder. Ask your assistant if you want to change what matters for a position.
