@@ -12,6 +12,36 @@ Works on Mac, Windows and Linux.
 
 ---
 
+## Just want the FM views and search filters?
+
+This project comes with ready-made FM views and search filters that you can use on their own. They're in three
+folders: `views`, `player search filters` and `staff search filters`. To add them to FM:
+
+1. **Download them.** At the top of this page, click the green **Code** button, then **Download ZIP**. Open the
+   downloaded file to unzip it. You'll get a folder called `fm-scoring-main`.
+2. **Quit FM.** It only picks up new views and filters when it starts.
+3. **Open FM's folder:**
+   - **Mac:** in Finder, click **Go** in the menu bar, then **Go to Folder…**, paste
+     `~/Library/Application Support/Sports Interactive/Football Manager 27`, and press Enter.
+   - **Windows:** open File Explorer, click the address bar at the top, paste `%LOCALAPPDATA%\Sports Interactive`,
+     and press Enter. Open the **Football Manager 27** folder. If it isn't there, look in
+     **Documents → Sports Interactive → Football Manager 27** instead.
+
+   You're in the right place if you can see folders such as `views` and `tactics`.
+4. **Copy the files in.** Do this for each of the three folders:
+   - Open the folder in `fm-scoring-main` (e.g. `views`), select all the files in it (**⌘ A** on Mac, **Ctrl A** on
+     Windows) and copy them (**⌘ C** / **Ctrl C**).
+   - Open the folder with the same name in FM's folder and paste them (**⌘ V** / **Ctrl V**). If FM's folder doesn't
+     have one with that name, create it first, named exactly the same.
+
+   Copy the files, not the whole folder. On a Mac, dragging a folder onto one with the same name and choosing
+   **Replace** deletes the views you already have. If you're asked about replacing a file with the same name,
+   that's one of your own views or filters, so choose **Skip** if you want to keep yours.
+5. **Start FM.** The views are in the view options above player and staff lists. The filters are in the player and
+   staff search screens. Each one has the name of its file.
+
+---
+
 ## What you need
 
 - **Football Manager 2027.**
