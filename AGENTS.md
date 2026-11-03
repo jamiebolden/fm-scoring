@@ -22,7 +22,7 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 | Path | Purpose |
 |---|---|
 | `config.toml` | This computer's settings: `active_save` (the save being worked on; only ever touch that save), `screenshots_dir`, `currency`. Gitignored; `python3 score.py init` writes it, `config.example.toml` shows it. |
-| `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; page 5's default), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 7), `last_staff_names` (staff already observed to add to page 7). |
+| `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; page 5's default), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 7), `last_staff_names` (staff already observed to add to page 7), and optionally `transfer_budget` and `wage_budget` (as FM shows them: `"€0"`, `"€12.75K"`; they add the Afford column). |
 | `saves/<save>/obs/*.csv` | Observations: `<YYYY-MM-DD>_<source>_<view>.csv`, one per screenshot set. Append-only. |
 | `saves/<save>/staff/*.csv` | Staff observations: `<YYYY-MM-DD>_<source>.csv` (`search-coach`). Append-only. |
 | `weights/<name>.toml` | Position weights (`[outfield.*]`, `[gk]`), age benchmarks, and staff scoring: `[staff_words]` (FM's words → numbers) and `[staff.<role>]` (the role's column label, then attribute weights). |
@@ -135,6 +135,9 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
 - **vs Age** = best ÷ `age_benchmark` for their age (clamped to the table's ends); 100% = on track.
 - **Over time:** each attribute is its latest known value; club, age, wage and value come from the latest
   observation. Enter/double-click a player for their history by date.
+- **Afford** (pages 2 and 3, only when `save.toml` has `transfer_budget` and `wage_budget`): `yes` if the fee (the top of FM's
+  value range; none for a free agent) and the current wage both fit, `maybe` if the fee only fits at the bottom of the range,
+  `no` otherwise, `?` if the value or wage isn't known. Loans and wage shares aren't modelled. When the user's budgets change, update them.
 - **Left** = yes for Fairly Strong or better (`LEFT_FOOTED` in `score.py`).
 - **Left the club:** a managed-club player missing from the latest squad screen (non-`search-` file) moves to
   elsewhere as `left <club>`.

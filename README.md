@@ -208,3 +208,8 @@ typical for their age: 100% means they're on track to be a high-end Championship
 player in their prime, once fully developed. More than 100% means they're ahead of that.
 
 The weights are in the `weights` folder. Ask your assistant if you want to change what matters for a position.
+
+**Afford** shows whether you can sign a player with your current budgets: tell your assistant your transfer budget
+and the wage budget you have left (FM shows both under Recruitment). `yes` means the fee and his current wage both fit,
+`maybe` means the fee only fits at the low end of his value range, `no` means one of them doesn't. It doesn't know
+about loans, so check those in FM.
