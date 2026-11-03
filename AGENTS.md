@@ -116,7 +116,7 @@ words, one step at a time, no jargon, and do the typing for them. `README.md` is
    and `%LOCALAPPDATA%\Sports Interactive` for the `Football Manager 27` folder that contains `views`;
    if you can't find it, ask. Copy `views/`, `player search filters/` and `staff search filters/` into the folders of the same
    names there, creating any that are missing. Never overwrite a file of the same name without asking. Then tell them the
-   columns README's step 5 lists for the views that aren't included (squad outfield, whole league, staff).
+   columns README's step 5 lists for the views that aren't included (whole league, staff).
    The attributes come from the weights file, so if it's not `fm27`, list that file's instead (and the views may need editing).
 4. **First screenshots:** their squad screen with the outfield view, scrolling to cover everyone, then the GK view, with FM's
    date and their crest in shot. When they say "new screenshots", follow "Adding screenshots" below.

@@ -82,6 +82,7 @@ then reopen it afterwards so it picks them up.
 
 | View | Use it on | Columns |
 |---|---|---|
+| `attribs_outfield` | your squad screen | Name, Age, Left Foot, Wage and the outfield attributes |
 | `attribs_gk` | your squad screen | Name, Age, Left Foot, Wage and the goalkeeping attributes |
 | `player_search_outfield` | player search, shortlists | Name, Club, Age, Left Foot, Wage, Transfer Value and the outfield attributes |
 | `player_search_gk` | player search, shortlists | the same for goalkeepers |
@@ -89,7 +90,7 @@ then reopen it afterwards so it picks them up.
 In FM, you pick a list's view from the view options above it. The search filters (player positions such as
 `cb` and `wb left`, staff jobs such as `physio` and `scout`) show up in FM's search screens under their file names.
 
-The squad outfield view, the whole-league views and the staff view aren't included yet, so make those yourself.
+The whole-league views and the staff view aren't included yet, so make those yourself.
 These are the attributes the views need:
 
 - **Outfield:** Acceleration, Anticipation, Composure, Decisions, Dribbling, Finishing, First Touch, Heading,
