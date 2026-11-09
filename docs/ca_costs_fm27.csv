@@ -1,0 +1,222 @@
+Position,Attribute,CA cost
+GK,Decisions,10
+GK,Agility,8
+GK,Reflexes,8
+GK,Handling,8
+GK,Concentration,6
+GK,Bravery,6
+GK,Acceleration,6
+GK,Command of Area,6
+GK,Aerial Reach,6
+GK,Positioning,5
+GK,Kicking,5
+GK,Communication,5
+GK,Strength,4
+GK,One on Ones,4
+GK,Pace,3
+GK,Anticipation,3
+GK,Throwing,3
+GK,Passing,3
+GK,Composure,2
+GK,Balance,2
+GK,Leadership,2
+GK,Teamwork,2
+CB,Decisions,10
+CB,Positioning,8
+CB,Marking,8
+CB,Agility,6
+CB,Jumping Reach,6
+CB,Strength,6
+CB,Acceleration,6
+CB,Pace,5
+CB,Anticipation,5
+CB,Tackling,5
+CB,Heading,5
+CB,Concentration,4
+CB,Stamina,3
+CB,Composure,2
+CB,Bravery,2
+CB,Balance,2
+CB,Leadership,2
+CB,Work Rate,2
+CB,First Touch,2
+CB,Passing,2
+DL/DR,Acceleration,7
+DL/DR,Decisions,7
+DL/DR,Agility,6
+DL/DR,Stamina,6
+DL/DR,Pace,5
+DL/DR,Concentration,4
+DL/DR,Strength,4
+DL/DR,Positioning,4
+DL/DR,Tackling,4
+DL/DR,First Touch,3
+DL/DR,Anticipation,3
+DL/DR,Marking,3
+DL/DR,Composure,2
+DL/DR,Bravery,2
+DL/DR,Balance,2
+DL/DR,Jumping Reach,2
+DL/DR,Work Rate,2
+DL/DR,Teamwork,2
+DL/DR,Technique,2
+DL/DR,Vision,2
+DL/DR,Passing,2
+DL/DR,Heading,2
+DL/DR,Crossing,2
+DM,Decisions,8
+DM,Tackling,7
+DM,Agility,6
+DM,Acceleration,6
+DM,Strength,5
+DM,Positioning,5
+DM,Anticipation,5
+DM,Pace,4
+DM,Stamina,4
+DM,Work Rate,4
+DM,First Touch,4
+DM,Vision,4
+DM,Passing,4
+DM,Concentration,3
+DM,Technique,3
+DM,Marking,3
+DM,Long Shots,3
+DM,Composure,2
+DM,Balance,2
+DM,Teamwork,2
+DM,Finishing,2
+DM,Dribbling,2
+WBL/WBR,Acceleration,8
+WBL/WBR,Stamina,7
+WBL/WBR,Pace,6
+WBL/WBR,Agility,5
+WBL/WBR,Decisions,5
+WBL/WBR,Strength,4
+WBL/WBR,Concentration,3
+WBL/WBR,Technique,3
+WBL/WBR,First Touch,3
+WBL/WBR,Positioning,3
+WBL/WBR,Anticipation,3
+WBL/WBR,Tackling,3
+WBL/WBR,Passing,3
+WBL/WBR,Crossing,3
+WBL/WBR,Composure,2
+WBL/WBR,Balance,2
+WBL/WBR,Work Rate,2
+WBL/WBR,Teamwork,2
+WBL/WBR,Vision,2
+WBL/WBR,Off The Ball,2
+WBL/WBR,Marking,2
+WBL/WBR,Dribbling,2
+CM,Decisions,7
+CM,Agility,6
+CM,Stamina,6
+CM,Acceleration,6
+CM,First Touch,6
+CM,Vision,6
+CM,Passing,6
+CM,Pace,5
+CM,Strength,4
+CM,Technique,4
+CM,Composure,3
+CM,Work Rate,3
+CM,Positioning,3
+CM,Anticipation,3
+CM,Tackling,3
+CM,Off The Ball,3
+CM,Marking,3
+CM,Long Shots,3
+CM,Concentration,2
+CM,Balance,2
+CM,Teamwork,2
+CM,Finishing,2
+CM,Dribbling,2
+ML/MR,Acceleration,8
+ML/MR,Agility,6
+ML/MR,Pace,6
+ML/MR,Stamina,5
+ML/MR,Decisions,5
+ML/MR,Crossing,5
+ML/MR,Technique,4
+ML/MR,First Touch,4
+ML/MR,Composure,3
+ML/MR,Strength,3
+ML/MR,Work Rate,3
+ML/MR,Anticipation,3
+ML/MR,Vision,3
+ML/MR,Passing,3
+ML/MR,Dribbling,3
+ML/MR,Concentration,2
+ML/MR,Balance,2
+ML/MR,Teamwork,2
+ML/MR,Tackling,2
+ML/MR,Off The Ball,2
+ML/MR,Long Shots,2
+ML/MR,Finishing,2
+AMC,Acceleration,9
+AMC,Pace,7
+AMC,Agility,6
+AMC,Stamina,6
+AMC,Decisions,6
+AMC,Vision,6
+AMC,Technique,5
+AMC,First Touch,5
+AMC,Passing,4
+AMC,Composure,3
+AMC,Strength,3
+AMC,Work Rate,3
+AMC,Anticipation,3
+AMC,Off The Ball,3
+AMC,Long Shots,3
+AMC,Finishing,3
+AMC,Dribbling,3
+AMC,Concentration,2
+AMC,Balance,2
+AMC,Teamwork,2
+AMC,Positioning,2
+AMC,Tackling,2
+AML/AMR,Pace,10
+AML/AMR,Acceleration,10
+AML/AMR,Stamina,7
+AML/AMR,Agility,6
+AML/AMR,First Touch,5
+AML/AMR,Decisions,5
+AML/AMR,Dribbling,5
+AML/AMR,Crossing,5
+AML/AMR,Technique,4
+AML/AMR,Composure,3
+AML/AMR,Strength,3
+AML/AMR,Work Rate,3
+AML/AMR,Anticipation,3
+AML/AMR,Vision,3
+AML/AMR,Concentration,2
+AML/AMR,Balance,2
+AML/AMR,Teamwork,2
+AML/AMR,Tackling,2
+AML/AMR,Passing,2
+AML/AMR,Off The Ball,2
+AML/AMR,Long Shots,2
+AML/AMR,Finishing,2
+ST,Acceleration,10
+ST,Finishing,8
+ST,Pace,7
+ST,Composure,6
+ST,Agility,6
+ST,Stamina,6
+ST,Strength,6
+ST,First Touch,6
+ST,Off The Ball,6
+ST,Heading,6
+ST,Jumping Reach,5
+ST,Decisions,5
+ST,Anticipation,5
+ST,Dribbling,5
+ST,Technique,4
+ST,Concentration,2
+ST,Balance,2
+ST,Work Rate,2
+ST,Positioning,2
+ST,Vision,2
+ST,Passing,2
+ST,Long Shots,2
+ST,Crossing,2

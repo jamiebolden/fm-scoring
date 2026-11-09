@@ -1,0 +1,194 @@
+Session,Group,Attribute
+Attacking - Balanced,Attacking,Crossing
+Attacking - Balanced,Attacking,Dribbling
+Attacking - Balanced,Attacking,Finishing
+Attacking - Balanced,Attacking,First Touch
+Attacking - Balanced,Attacking,Heading
+Attacking - Balanced,Attacking,Long Shots
+Attacking - Balanced,Attacking,Passing
+Attacking - Balanced,Attacking,Technique
+Attacking - Balanced,Attacking,Composure
+Attacking - Balanced,Attacking,Flair
+Attacking - Balanced,Attacking,Off The Ball
+Attacking - Balanced,Attacking,Vision
+Attacking - Balanced,Midfield,Crossing
+Attacking - Balanced,Midfield,Dribbling
+Attacking - Balanced,Midfield,First Touch
+Attacking - Balanced,Midfield,Heading
+Attacking - Balanced,Midfield,Long Shots
+Attacking - Balanced,Midfield,Passing
+Attacking - Balanced,Midfield,Technique
+Attacking - Balanced,Midfield,Composure
+Attacking - Balanced,Midfield,Off The Ball
+Attacking - Balanced,Midfield,Vision
+Attacking - Balanced,Defending,Crossing
+Attacking - Balanced,Defending,Dribbling
+Attacking - Balanced,Defending,First Touch
+Attacking - Balanced,Defending,Heading
+Attacking - Balanced,Defending,Long Shots
+Attacking - Balanced,Defending,Passing
+Attacking - Balanced,Defending,Off The Ball
+Attacking - Balanced,Defending,Vision
+Attacking - Patient,Attacking,Finishing
+Attacking - Patient,Attacking,First Touch
+Attacking - Patient,Attacking,Passing
+Attacking - Patient,Attacking,Technique
+Attacking - Patient,Attacking,Composure
+Attacking - Patient,Attacking,Decisions
+Attacking - Patient,Attacking,Flair
+Attacking - Patient,Attacking,Off The Ball
+Attacking - Patient,Attacking,Vision
+Attacking - Patient,Attacking,Teamwork
+Attacking - Patient,Midfield,Finishing
+Attacking - Patient,Midfield,First Touch
+Attacking - Patient,Midfield,Passing
+Attacking - Patient,Midfield,Technique
+Attacking - Patient,Midfield,Composure
+Attacking - Patient,Midfield,Decisions
+Attacking - Patient,Midfield,Off The Ball
+Attacking - Patient,Midfield,Vision
+Attacking - Patient,Midfield,Teamwork
+Attacking - Patient,Defending,First Touch
+Attacking - Patient,Defending,Passing
+Attacking - Patient,Defending,Technique
+Attacking - Patient,Defending,Composure
+Attacking - Patient,Defending,Decisions
+Attacking - Patient,Defending,Off The Ball
+Attacking - Patient,Defending,Vision
+Attacking - Patient,Defending,Teamwork
+Attacking - Direct,Attacking,Dribbling
+Attacking - Direct,Attacking,Finishing
+Attacking - Direct,Attacking,First Touch
+Attacking - Direct,Attacking,Heading
+Attacking - Direct,Attacking,Long Shots
+Attacking - Direct,Attacking,Passing
+Attacking - Direct,Attacking,Technique
+Attacking - Direct,Attacking,Anticipation
+Attacking - Direct,Attacking,Flair
+Attacking - Direct,Attacking,Off The Ball
+Attacking - Direct,Attacking,Vision
+Attacking - Direct,Midfield,Dribbling
+Attacking - Direct,Midfield,Finishing
+Attacking - Direct,Midfield,First Touch
+Attacking - Direct,Midfield,Long Shots
+Attacking - Direct,Midfield,Passing
+Attacking - Direct,Midfield,Technique
+Attacking - Direct,Midfield,Anticipation
+Attacking - Direct,Midfield,Off The Ball
+Attacking - Direct,Midfield,Vision
+Attacking - Direct,Defending,Dribbling
+Attacking - Direct,Defending,First Touch
+Attacking - Direct,Defending,Long Shots
+Attacking - Direct,Defending,Passing
+Attacking - Direct,Defending,Technique
+Attacking - Direct,Defending,Anticipation
+Attacking - Direct,Defending,Off The Ball
+Attacking - Direct,Defending,Vision
+Attacking - Wings,Attacking,Crossing
+Attacking - Wings,Attacking,Dribbling
+Attacking - Wings,Attacking,Finishing
+Attacking - Wings,Attacking,Heading
+Attacking - Wings,Attacking,Technique
+Attacking - Wings,Attacking,Anticipation
+Attacking - Wings,Attacking,Flair
+Attacking - Wings,Attacking,Off The Ball
+Attacking - Wings,Midfield,Crossing
+Attacking - Wings,Midfield,Dribbling
+Attacking - Wings,Midfield,Heading
+Attacking - Wings,Midfield,Technique
+Attacking - Wings,Midfield,Anticipation
+Attacking - Wings,Midfield,Flair
+Attacking - Wings,Midfield,Off The Ball
+Attacking - Wings,Defending,Crossing
+Attacking - Wings,Defending,Dribbling
+Attacking - Wings,Defending,Technique
+Attacking - Wings,Defending,Anticipation
+Attacking - Wings,Defending,Off The Ball
+Defending - Balanced,Attacking,Heading
+Defending - Balanced,Attacking,Marking
+Defending - Balanced,Attacking,Tackling
+Defending - Balanced,Attacking,Aggression
+Defending - Balanced,Attacking,Concentration
+Defending - Balanced,Attacking,Positioning
+Defending - Balanced,Midfield,Heading
+Defending - Balanced,Midfield,Marking
+Defending - Balanced,Midfield,Tackling
+Defending - Balanced,Midfield,Aggression
+Defending - Balanced,Midfield,Concentration
+Defending - Balanced,Midfield,Decisions
+Defending - Balanced,Midfield,Positioning
+Defending - Balanced,Defending,Heading
+Defending - Balanced,Defending,Marking
+Defending - Balanced,Defending,Tackling
+Defending - Balanced,Defending,Technique
+Defending - Balanced,Defending,Aggression
+Defending - Balanced,Defending,Anticipation
+Defending - Balanced,Defending,Concentration
+Defending - Balanced,Defending,Decisions
+Defending - Balanced,Defending,Positioning
+Defending - Engaged,Attacking,Tackling
+Defending - Engaged,Attacking,Aggression
+Defending - Engaged,Attacking,Bravery
+Defending - Engaged,Midfield,Tackling
+Defending - Engaged,Midfield,Aggression
+Defending - Engaged,Midfield,Bravery
+Defending - Engaged,Midfield,Decisions
+Defending - Engaged,Defending,Tackling
+Defending - Engaged,Defending,Aggression
+Defending - Engaged,Defending,Bravery
+Defending - Engaged,Defending,Decisions
+Defending - Engaged,Defending,Positioning
+Defending - Disengaged,Attacking,Marking
+Defending - Disengaged,Attacking,Positioning
+Defending - Disengaged,Attacking,Teamwork
+Defending - Disengaged,Midfield,Marking
+Defending - Disengaged,Midfield,Anticipation
+Defending - Disengaged,Midfield,Positioning
+Defending - Disengaged,Midfield,Teamwork
+Defending - Disengaged,Defending,Marking
+Defending - Disengaged,Defending,Anticipation
+Defending - Disengaged,Defending,Concentration
+Defending - Disengaged,Defending,Positioning
+Defending - Disengaged,Defending,Teamwork
+Defending - Wide,Attacking,Marking
+Defending - Wide,Attacking,Decisions
+Defending - Wide,Attacking,Positioning
+Defending - Wide,Midfield,Marking
+Defending - Wide,Midfield,Anticipation
+Defending - Wide,Midfield,Decisions
+Defending - Wide,Midfield,Positioning
+Defending - Wide,Defending,Heading
+Defending - Wide,Defending,Marking
+Defending - Wide,Defending,Anticipation
+Defending - Wide,Defending,Decisions
+Defending - Wide,Defending,Positioning
+Theory - Attacking Shadow Play,Attacking,Anticipation
+Theory - Attacking Shadow Play,Attacking,Composure
+Theory - Attacking Shadow Play,Attacking,Decisions
+Theory - Attacking Shadow Play,Attacking,Off The Ball
+Theory - Attacking Shadow Play,Attacking,Teamwork
+Theory - Attacking Shadow Play,Midfield,Anticipation
+Theory - Attacking Shadow Play,Midfield,Composure
+Theory - Attacking Shadow Play,Midfield,Decisions
+Theory - Attacking Shadow Play,Midfield,Off The Ball
+Theory - Attacking Shadow Play,Midfield,Teamwork
+Theory - Attacking Shadow Play,Defending,Anticipation
+Theory - Attacking Shadow Play,Defending,Composure
+Theory - Attacking Shadow Play,Defending,Decisions
+Theory - Attacking Shadow Play,Defending,Off The Ball
+Theory - Attacking Shadow Play,Defending,Teamwork
+Theory - Defensive Shadow Play,Attacking,Anticipation
+Theory - Defensive Shadow Play,Attacking,Composure
+Theory - Defensive Shadow Play,Attacking,Decisions
+Theory - Defensive Shadow Play,Attacking,Positioning
+Theory - Defensive Shadow Play,Attacking,Teamwork
+Theory - Defensive Shadow Play,Midfield,Anticipation
+Theory - Defensive Shadow Play,Midfield,Composure
+Theory - Defensive Shadow Play,Midfield,Decisions
+Theory - Defensive Shadow Play,Midfield,Positioning
+Theory - Defensive Shadow Play,Midfield,Teamwork
+Theory - Defensive Shadow Play,Defending,Anticipation
+Theory - Defensive Shadow Play,Defending,Composure
+Theory - Defensive Shadow Play,Defending,Decisions
+Theory - Defensive Shadow Play,Defending,Positioning
+Theory - Defensive Shadow Play,Defending,Teamwork
