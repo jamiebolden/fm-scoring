@@ -150,3 +150,4 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
 - Display: scores `0.0`, vs Age `xx%`.
 - In `weights/*.toml`, quote keys with `/` or spaces: `[outfield."WB/6"]`, `"First Touch" = 1`.
 - Stdlib Python, no build step, no dependencies.
+- README's schedules download link points to `fm27-training-schedules.zip` on the latest GitHub release. It holds a copy of the test schedules in `schedules/` and an install guide, so when those schedules change, publish a new release with an updated zip of the same name.

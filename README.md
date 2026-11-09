@@ -12,6 +12,14 @@ Works on Mac, Windows and Linux.
 
 ---
 
+## Just want the training schedules?
+
+**[Download the FM27 training schedules](https://github.com/jamiebolden/fm-scoring/releases/latest/download/fm27-training-schedules.zip)**
+
+Click the link and a zip file downloads. Open it to unzip it, then follow `How to install.txt` inside. You don't need anything else from this page.
+
+---
+
 ## Just want the FM views and search filters?
 
 This project comes with ready-made FM views, search filters and training schedules that you can use on their own.
