@@ -87,6 +87,14 @@ Throwing = 0.5
 
 # Expected best-position score by age; "vs Age" = best score / benchmark.
 # Ages above the highest listed use the highest; below the lowest use the lowest.
+# FM's position codes each scored position covers (natural positions), for `score.py scout`
+[fm_positions]
+GK = ["GK"]
+CB = ["DC"]
+"WB/6" = ["DL", "DR", "WBL", "WBR", "DM"]
+10 = ["AMC", "AML", "AMR", "MC"]
+9 = ["STC"]
+
 [age_benchmark]
 15 = 10.3
 16 = 10.9
@@ -264,6 +272,7 @@ Motivating = 1
 "Tactical Knowledge" = 1
 
 [staff.Scout]  # Scout
+Adaptability = 4
 "Judging Player Ability" = 4
 "Judging Player Potential" = 4
 "Tactical Knowledge" = 2
@@ -271,16 +280,15 @@ Determination = 2
 
 [staff.PA]  # Performance Analyst
 "Analysing Data" = 4
-"Judging Player Ability" = 3
+"Tactical Knowledge" = 4
+"Judging Player Ability" = 1
 Determination = 1
-"Tactical Knowledge" = 2
 
 [staff.Physio]  # Physio
 Physiotherapy = 4
-Determination = 2
-Motivating = 2
-"People Management" = 2
-"Sports Science" = 2
+Determination = 1
+Motivating = 1
+"People Management" = 1
 
 [staff.SpSci]  # Sports Scientist
 "Sports Science" = 4

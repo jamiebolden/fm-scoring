@@ -3,3 +3,8 @@
 active_save = "my-club"            # saves/<this>/save.toml
 screenshots_dir = "~/Desktop"      # where your screenshots are saved (Windows: "~/Pictures/Screenshots")
 currency = "£"                     # the money symbol FM shows
+language = "en"                    # the pages' language: en or nl (the data stays as FM shows it)
+# For `score.py import` (reading the save file):
+# fmsave = "uvx --python 3.12 fmsave"  # how to run fmsave, if it isn't `fmsave` or `uvx` on your PATH
+# money_rate = 1.156                   # the save stores money in pounds: multiply by this to get what FM shows you (1 for £)
+# wage_period = "month"                # "week" (default) or "month", however FM shows wages to you

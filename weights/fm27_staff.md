@@ -42,17 +42,21 @@ Checked against FM27 staff profiles (31/3/2029, an FM27 save).
 | Scout | Adaptability, Judging Player Ability, Judging Player Potential |
 | Physio | Physiotherapy |
 | Sports Scientist | Sports Science |
-| Performance Analyst | not yet checked |
+| Performance Analyst | Analysing Data, Tactical Knowledge |
+| Recruitment Analyst | Analysing Data, Judging Player Ability (not scored as a role) |
+| Head of Performance Analysis | Analysing Data, Tactical Knowledge, Judging Player Ability, Determination (not scored as a role) |
 
 ## Other changes from the grid
 
 - **Coach groups.** The grid has one general Coach column. These weights split it into FM's nine training groups: each group gets its two coaching attributes at 4, plus the coach mentals and Working With Youngsters.
 - **Training only.** The coach groups leave out the Judging, Negotiating and Tactical Knowledge attributes. Those cover a coach's player reports, not their training.
 - **Left out.** Business is hidden, so it's left out of the Director of Football weights.
+- **Performance Analyst.** FM27 marks Analysing Data and Tactical Knowledge key, so both weigh 4; Judging Player Ability (key for a recruitment analyst) and Determination (key for the head of performance analysis) weigh 1.
+- **Physio.** FM27 marks only Physiotherapy key for a physio, so it carries most of the weight (4, against 1 each for Determination, Motivating and People Management). Sports Science is the sports scientist's job and is left out.
+- **Scout adaptability.** FM27 marks Adaptability key for scouts (how fast they learn a new nation's players), so it weighs 4, like the two Judging attributes. FM marks it key for no other role, so no other role uses it.
 - **Not scored.** Hidden personality isn't on this view. FM Arena testing suggests it matters more than any attribute for a Head of Youth Development: their Professionalism shifts the intake's. Check it by hand.
 
 Where the weights still disagree with FM27's key attributes (candidates to amend):
-- Scout: FM marks Adaptability key; it has weight 0 here.
 - Set Piece Coach: FM marks Tactical Knowledge key; it has weight 0 here.
 - Coach groups: FM's generic Coach key list leaves out Possession, Set Pieces, Goalkeeping and Working With Youngsters.
 - Fitness Coach: FM doesn't mark Determination key; it has weight 2 here.

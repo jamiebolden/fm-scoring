@@ -4,9 +4,10 @@ A helper for Football Manager 2027. It gives every player you look at a score fo
 compare them at a glance: your own squad, transfer targets, whole leagues, and your staff. It remembers every
 player you've seen, so you can also watch how they develop over the seasons.
 
-FM can't export its data, so this works from screenshots. You take screenshots of FM's player lists, and an
-AI assistant (Claude Code or Codex) reads them for you and updates your pages. You never need to type
-any data in yourself.
+FM can't export its data, so this reads your save file: one request to your AI assistant (Claude Code or Codex)
+updates your squad and staff pages straight from the game's save. For players at other clubs (transfer searches,
+whole leagues), you take screenshots of FM's player lists and the assistant reads them for you. You never need to
+type any data in yourself.
 
 Works on Mac, Windows and Linux.
 
@@ -58,6 +59,8 @@ They're in four folders: `views`, `player search filters`, `staff search filters
   - **Codex**, which needs a paid ChatGPT plan. Install it from [developers.openai.com/codex](https://developers.openai.com/codex).
 - **Python**, version 3.11 or newer. It's free: download it from [python.org/downloads](https://www.python.org/downloads/).
   On Windows, tick **"Add python.exe to PATH"** on the installer's first screen.
+- **uv**, to read your save file. It's free: install it from [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/).
+  (It fetches the extra bits the save reader needs. Skip it if you only want to use screenshots.)
 - **Git**, to download this project. Macs ask to install it the first time you need it. On Windows, get it from
   [git-scm.com](https://git-scm.com/downloads) and click Next through the installer.
 
@@ -108,6 +111,7 @@ It will check that everything is installed, then ask you a few questions:
   - **Mac:** ⌘ Shift 4, then drag over the area. Screenshots go to your Desktop unless you've changed it.
   - **Windows:** Windows key + Print Screen. Screenshots go to Pictures → Screenshots.
 - **Which currency** FM shows wages in (£, €, $…).
+- **Which save file** is this save, so it can read it. The assistant lists the ones FM has.
 
 It saves your answers, so you only do this once per save.
 
@@ -138,7 +142,16 @@ These are the attributes the views need:
   Concentration, Decisions, Handling, Kicking, One on Ones, Passing, Positioning, Reflexes and Throwing.
 - **Whole league** (for the charts page): the search view plus Division, Minutes and Average Rating.
 
-### 6. Take your first screenshots
+### 6. Read your save
+
+Save your game in FM, then tell your assistant:
+
+> Update from my save.
+
+It reads your squad and staff out of the save file, scores them, and opens your pages in your web browser. Do this
+whenever you want your pages brought up to date: just save the game first.
+
+If you'd rather not read the save file, or it can't be read, screenshots do the same job:
 
 1. In FM, open your **squad** screen with the outfield view.
 2. Screenshot it. Scroll down and screenshot again until you've covered every player.
@@ -157,19 +170,43 @@ It reads them, saves the players, and opens your pages in your web browser.
 
 ## Using it
 
-Whenever you want to add players, screenshot them in FM and tell your assistant **"new screenshots"**. For example:
+Whenever you want your squad and staff pages brought up to date, save the game and tell your assistant
+**"update from my save"**. Or leave it running: ask for **"keep my pages live"** and the assistant starts a small
+local server that refreshes the pages every time FM saves.
+
+### Finding players and staff
+
+Your save holds every player and staff member in the game, and the assistant can search them for you:
+
+- **Staff:** "find me an assistant manager, Dutch, under 4K a month". The **recruit** tab lists candidates ranked
+  for that role, with their club, wage and contract. FM shows every staff member's attributes anyway, so this is
+  the same information as FM's staff search, just faster to sift.
+- **Players:** "find me a left back, 24 or under, in the Eredivisie, under 500K". The **scouting** tab lists
+  matches with what FM shows anyone: age, club, positions, foot, wage, value, contract and season stats.
+
+Scores only appear for players whose attributes FM has actually shown you: your own squad, players you've had
+scouted (tell the assistant "I've scouted X and Y") and leagues you know fully ("I have full knowledge of the
+Eredivisie"). The tool never reads hidden attributes or potential, so it helps you choose without cheating.
+
+For players who aren't at your club, screenshots still work too: screenshot them in FM and say **"new screenshots"**.
+For example:
 
 - **A transfer search:** screenshot the results to compare everyone it finds.
 - **A shortlist or scouting list.**
 - **A whole league:** screenshot every player in a division, with Minutes, Average Rating and Division showing.
   That fills the charts page, so you can see how your squad compares.
 - **Staff searches:** coaches, scouts, physios and so on, with the staff view.
-- **Your squad again later:** re-screenshot it every few months of game time to see who's improving.
+- **Your squad again later:** update from your save every few months of game time to see who's improving.
 
 The assistant tells you about notable players each time. It's worth checking a few numbers against FM
 now and then, because a misread number is the most likely mistake.
 
 ### The pages
+
+The pages open in your browser with a sidebar: **Club** (your squad, line-up and what to search for), **Scouting**
+(search results, the league), **Staff** (your staff, recruiting) and **More** (settings, and a help page with
+everything you can say to your assistant). Each page starts with a line on what it shows and how to use it. The
+pages are in English or Dutch: ask your assistant to switch.
 
 Press the number keys to move between pages, and **?** on any page for its keyboard shortcuts.
 
@@ -211,21 +248,23 @@ scores it. For example:
 
 ```toml
 grid = [
-  { label = "GK", pos = "GK" },
-  { label = "D R", pos = "WB/6" },
-  { label = "D C", pos = "CB" },
-  { label = "D C left", pos = "CB", left = true },
-  { label = "D L", pos = "WB/6", left = true },
-  { label = "DM", pos = "WB/6" },
-  { label = "DM", pos = "WB/6" },
-  { label = "AM R", pos = "10" },
-  { label = "AM C", pos = "10" },
-  { label = "AM L", pos = "10" },
-  { label = "ST", pos = "9" },
+  { label = "GK", pos = "GK", fm = ["GK"] },
+  { label = "D R", pos = "WB/6", fm = ["DR", "WBR"] },
+  { label = "D C", pos = "CB", fm = ["DC"] },
+  { label = "D C left", pos = "CB", fm = ["DC"], left = true },
+  { label = "D L", pos = "WB/6", fm = ["DL", "WBL"] },
+  { label = "DM", pos = "WB/6", fm = ["DM", "MC"] },
+  { label = "DM", pos = "WB/6", fm = ["DM", "MC"] },
+  { label = "AM R", pos = "10", fm = ["AMR", "MR"] },
+  { label = "AM C", pos = "10", fm = ["AMC"] },
+  { label = "AM L", pos = "10", fm = ["AML", "ML"] },
+  { label = "ST", pos = "9", fm = ["STC"] },
 ]
 ```
 
-`left = true` means only left-footed players go there. Without a `grid`, the page has one row per position.
+`fm` lists the positions FM uses for that slot: once you've imported your save, only players FM rates there (natural
+or accomplished) go in it, so a right back doesn't end up at centre back on score alone. `left = true` means only
+left-footed players go there. Without a `grid`, the page has one row per position.
 
 ### Coming back later
 
@@ -236,7 +275,7 @@ cd Documents/fm-scoring
 claude
 ```
 
-Use `codex` instead of `claude` if that's your assistant. Then carry on with "new screenshots".
+Use `codex` instead of `claude` if that's your assistant. Then carry on with "update from my save" or "new screenshots".
 
 ### Starting another save
 

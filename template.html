@@ -5,60 +5,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 __THEME__
-  #filter { flex: 1; min-width: 0; font: inherit; color: var(--fg); background: transparent;
-            border: 0; border-bottom: 1px solid var(--line); padding: 2px 4px; outline: none; }
-  #filter:focus { border-bottom-color: var(--cyan); }
-  #filter.bad { border-bottom-color: var(--red); }
+  #filter { flex: 1; min-width: 200px; max-width: 560px; font: 13px var(--mono); color: var(--fg); background: var(--card);
+            border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; outline: none; }
+  #filter:focus { border-color: var(--cyan); }
+  #filter.bad { border-color: var(--red); }
   #filter::placeholder { color: var(--dim); }
-  #count { color: var(--dim); }
+  #count { color: var(--dim); font-family: var(--mono); font-size: 12px; }
   #count.copied { color: var(--green); }
-  .tile { background: var(--bg); border: 2px solid var(--blue); padding: 12px 14px; overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { padding: 5px 10px; white-space: nowrap; text-align: left; }
+  th, td { padding: 6px 10px; white-space: nowrap; text-align: left; }
   th.num, td.num { text-align: right; }
-  th { cursor: pointer; user-select: none; font-weight: normal; color: var(--purple); border-bottom: 1px solid var(--line); }
+  th { cursor: pointer; user-select: none; font-weight: 500; color: var(--purple); border-bottom: 1px solid var(--line);
+       position: sticky; top: 0; background: var(--card); z-index: 1; font-size: 12px; }
   th.sorted { color: var(--cyan); }
   th.curcol { text-decoration: underline; text-underline-offset: 4px; }
   th.desc::after { content: " ↓"; } th.asc::after { content: " ↑"; }
-  tbody tr:nth-child(even) td { background: #1f2131; }
+  tbody tr:nth-child(even) td { background: var(--zebra); }
   tr:hover td, tr.currow td { background: var(--hover); }
   td.cur { outline: 1px solid var(--cyan); outline-offset: -1px; }
   td.text { color: var(--purple); }
+  td.name { font-weight: 500; }
+  #main { max-height: calc(100vh - 190px); overflow: auto; }
+  #main.tiles, #main.grid, #main.help { max-height: none; }
   .loan { font-size: 11px; margin-left: 6px; user-select: none; } .loan.in { color: var(--blue); } .loan.out { color: var(--red); } .loan.trial { color: var(--yellow); }
   td.dim, .sub { color: var(--dim); }
   .t0 { color: var(--red); } .t1 { color: var(--orange); } .t2 { color: var(--yellow); }
   .t3 { color: var(--cyan); } .t4 { color: var(--green); }
-  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  @media (max-width: 900px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
-  .ttitle { color: var(--cyan); font-weight: 700; margin-bottom: 6px; }
-  .tiles th { cursor: default; vertical-align: bottom; }
-  .tiles td.search { color: var(--cyan); font-weight: 700; }
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; background: none; border: 0; padding: 0; }
+  @media (max-width: 1100px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
+  .tiles th { cursor: default; vertical-align: bottom; position: static; }
+  .tiles td.search { color: var(--cyan); font-weight: 600; }
   .tiles tr.minor td { opacity: .45; }
+  .tiles td.wrap { white-space: normal; }
+  /* Staff plan: one tile per role, a column per wage band */
+  #main.plan { grid-template-columns: minmax(0, 1fr); }
+  #main.plan th { position: static; cursor: default; }
+  #main.plan td { vertical-align: top; white-space: normal; min-width: 150px; }
+  #main.plan td:first-child { border-right: 1px solid var(--line); }
+  #main.plan .cand { margin: 2px 0 6px; line-height: 1.4; }
+  #main.plan .cn { font-weight: 500; }
+  #main.plan .sub { font-size: 11.5px; }
+  /* Help page: what to say, as question and answer */
+  #main.help { background: none; border: 0; padding: 0; display: grid; gap: 12px; }
+  #main.help td { white-space: normal; vertical-align: top; }
+  #main.help td:first-child { color: var(--cyan); font-weight: 500; width: 34%; }
   #help, #detail { display: none; position: fixed; inset: 0; background: #16161ecc; align-items: center; justify-content: center; z-index: 10; }
   #help.show, #detail.show { display: flex; }
   #detail .tile { width: min(1000px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; }
   #detail table + .ttitle { margin-top: 14px; }
   #detail .chg { font-size: 11px; margin-left: 4px; }
+  #detail th { position: static; }
   /* Weights: small, dim multipliers behind a divider, so they don't read as attribute values */
   td.wt { color: var(--dim); font-size: 11px; border-right: 1px solid var(--line); padding-right: 12px; }
   th.wt { border-right: 1px solid var(--line); padding-right: 12px; }
   #detail .wt.nb { border-right: 0; }
   #detail th.group { text-align: center; color: var(--dim); font-weight: normal; }
   #detail th.ago { color: var(--dim); font-weight: normal; border-bottom: 0; padding-bottom: 0; }
-  #help .tile { width: min(620px, calc(100vw - 32px)); }
+  #help .tile { width: min(640px, calc(100vw - 32px)); }
   #help td:first-child { color: var(--cyan); }
   #help b { color: var(--fg); font-weight: normal; }
   #help .sub { white-space: normal; padding-top: 10px; }
-  .helphint { color: var(--dim); text-decoration: none; white-space: nowrap; }
-  .helphint b { color: var(--fg); font-weight: normal; }
-  .tiles td.wrap { white-space: normal; }
-  /* Grid page: formation slots × senior then youth depth */
+  #help th { position: static; }
+  /* Line-up page: formation slots × senior then youth depth */
   #main.grid table { width: auto; }
   #main.grid td { padding: 5px 14px; }
-  #main.grid th { cursor: default; color: var(--purple); }
+  #main.grid th { cursor: default; color: var(--purple); position: static; }
   #main.grid th.group { color: var(--dim); text-align: left; border-bottom: 0; }
   #main.grid td.slot { color: var(--cyan); }
   #main.grid .split { border-left: 1px solid var(--line); }
@@ -71,39 +85,52 @@ __THEME__
 </style>
 </head>
 <body>
-<div class="bar">
-  <span class="pages">__NAV__</span>
-  <input id="filter" placeholder="/ filter  e.g. age<=24 best=CB vs>=90 left=yes" spellcheck="false" autocomplete="off">
-  <span id="count"></span>
-  <a class="helphint" href="#" id="helphint"><b>?</b> keyboard shortcuts</a>
-</div>
-<div class="tile" id="main">
-  <table>
-    <thead><tr id="head"></tr></thead>
-    <tbody id="body"></tbody>
-  </table>
+<div class="app">
+<aside class="side">
+  <div class="brand"><div class="club">__HOME__</div><div class="sub" id="gamedate"></div></div>
+  <nav class="nav">__NAV__</nav>
+  <div class="kpis" id="kpis"></div>
+  <a class="helphint" href="#" id="helphint">⌨ <span id="shortcutsLabel"></span></a>
+</aside>
+<main class="main">
+  <div class="phead"><h1>__PAGETITLE__</h1><p class="pdesc">__PAGEDESC__</p></div>
+  <div class="bar">
+    <input id="filter" spellcheck="false" autocomplete="off">
+    <span id="count"></span>
+  </div>
+  <div class="note" id="note"></div>
+  <div class="tile" id="main">
+    <table>
+      <thead><tr id="head"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+</main>
 </div>
 <div id="detail"><div class="tile" id="detailbody"></div></div>
 <div id="help"><div class="tile">
-  <div class="ttitle">keyboard shortcuts</div>
-  <table>
-    <tr><td><b>1</b> … <b>9</b> <b>0</b></td><td>__HOME__ · grid · elsewhere · last screenshots · filters · charts · staff · last staff screenshots · staff filters · settings</td></tr>
-    <tr><td><b>← ↑ ↓ →</b></td><td>move the cell cursor</td></tr>
-    <tr><td><b>enter</b></td><td>player (or staff) history over time (or double-click a row, or click a name on the grid; <b>esc</b> closes)</td></tr>
-    <tr><td><b>c</b> or <b>⌘C</b></td><td>copy the cursor's player name, for FM's search (or drag-select any text)</td></tr>
-    <tr><td><b>s</b></td><td>sort by the cursor's column (again to reverse)</td></tr>
-    <tr><td><b>/</b> or <b>f</b></td><td>filter box (<b>enter</b> / <b>esc</b> to leave it)</td></tr>
-    <tr><td><b>esc</b></td><td>clear the filter</td></tr>
-    <tr><td><b>?</b></td><td>show / hide this</td></tr>
-    <tr><td colspan="2" class="sub">filters: <b>col:text</b> contains · <b>col=x</b> · <b>col!=x</b> · <b>col&lt;n</b> <b>col&lt;=n</b> <b>col&gt;n</b> <b>col&gt;=n</b><br>
-      money: <b>wage&lt;=1k</b> <b>value&lt;=500k</b> (value = top of FM's range) · plain words match name / club, or <b>loan-in</b> / <b>loan-out</b> / <b>trial</b> · e.g. <b>club:gent age&lt;=24 best!=GK vs&gt;=90 left=yes</b></td></tr>
-  </table>
+  <div class="ttitle" id="helpTitle"></div>
+  <table id="helpTable"></table>
 </div></div>
 <script>
 const PAGE = "__PAGE__", SITE = __SITE__, PAGES = SITE.pages;
-const TABLE = !["grid", "filters", "staff_filters", "settings"].includes(PAGE);  // the other pages are tiles, with no table to filter or move around
-const DATA = __DATA__;
-const loanLabel = r => r.loan === "trial" ? "trial" : "loan " + r.loan;  // "loan in", "loan out", "trial"
+const TABLE = !["grid", "filters", "staff_filters", "settings", "help", "plan"].includes(PAGE);  // the other pages are tiles, with no table to filter or move around
+const RAW = __DATA__;
+// The scouting and recruit pages carry searches (one per role or position, each with its query and rows); every other table page is just rows
+const SEARCHES = RAW && !Array.isArray(RAW) && "searches" in RAW ? RAW.searches : null;
+let SEARCH = null, DATA = RAW;
+const t = k => SITE.t[k] ?? k;  // the chrome's strings, in config.toml's language (lang.py)
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// Sidebar: the game date and the club's headline numbers (from the save file); pages served by `score.py serve` reload on a rebuild
+document.getElementById("gamedate").innerHTML = [SITE.gameDate && `${t("header").gameDate} <b>${SITE.gameDate}</b>`, `${t("header").built} ${SITE.built}`].filter(Boolean).join("<br>");
+document.getElementById("kpis").innerHTML = SITE.kpis.map(k => `<div class="kpi"><div class="l">${esc(k.label)}</div><div class="v">${esc(k.value)}</div></div>`).join("");
+document.getElementById("shortcutsLabel").textContent = t("shortcuts");
+if (location.protocol.startsWith("http")) {
+  let v0; setInterval(async () => { try { const v = await (await fetch("/_version", { cache: "no-store" })).text(); if (v0 && v !== v0) location.reload(); v0 = v; } catch (e) {} }, 3000);
+}
+const loanLabel = r => r.loan === "trial" ? t("trial") : t(r.loan === "in" ? "loanIn" : "loanOut");
+// A pre-agreed signing not here yet: "joins 2-9"
+const joinsTag = r => r.joins ? `<span class="loan in">${t("joins")} ${+r.joins.slice(8, 10)}-${+r.joins.slice(5, 7)}</span>` : "";
 const FMT = {
   f1: v => v.toFixed(1),
   f2: v => v.toFixed(2),
@@ -119,14 +146,27 @@ const ALIASES = { lefty: "left", leftfoot: "left", player: "name", pos: "best", 
 const STORE = "fm:__SAVE__:" + PAGE;
 const input = document.getElementById("filter"), help = document.getElementById("help"), detail = document.getElementById("detail");
 let sortKey = COLS.some(c => c.key === "vsAge") ? "vsAge" : COLS.find(c => c.num && c.fmt)?.key, dir = -1, cur = { r: 0, c: 0 }, view = [];
+let picked = null;  // the search shown on a search page (its key)
 
 try {
   const s = JSON.parse(localStorage.getItem(STORE) || "{}");
   if (s.sortKey && COLS.some(c => c.key === s.sortKey)) ({ sortKey, dir } = s);
   input.value = s.q || "";
+  picked = s.picked ?? null;
 } catch (e) {}
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ sortKey, dir, q: input.value })); } catch (e) {}
+  try { localStorage.setItem(STORE, JSON.stringify({ sortKey, dir, q: input.value, picked })); } catch (e) {}
+}
+// Search pages: pick one search (a role or position); its rows become the table, sorted by what was asked
+function pickSearch(key) {
+  SEARCH = SEARCHES.find(s => s.key === key) || SEARCHES[0];
+  if (!SEARCH) return;
+  picked = SEARCH.key; DATA = SEARCH.rows; cur = { r: 0, c: 0 };
+  if (COLS.some(c => c.key === SEARCH.sort)) { sortKey = SEARCH.sort; dir = -1; }
+  const q = SEARCH.query, chips = Object.entries(q).map(([k, v]) => `<span class="chip">${esc(k.replace("_", " "))}: ${esc(Array.isArray(v) ? v.join(", ") : v)}</span>`).join("");
+  document.getElementById("note").innerHTML = `<div class="pick">${SEARCHES.map(s => `<button class="${s.key === SEARCH.key ? "on" : ""}" data-key="${esc(s.key)}">${esc(s.label)}</button>`).join("")}</div>` +
+    `${t("search")}: ${chips}`;
+  render();
 }
 
 function tier(v, [lo, hi]) {
@@ -146,8 +186,8 @@ function parseFilter(q) {
   const tests = tokens.map(tok => {
     const m = tok.match(/^([^:=<>!]+)(<=|>=|!=|<|>|=|:)(.*)$/);
     if (!m) {
-      const t = tok.replace(/"/g, "").toLowerCase();
-      return r => `${r.name} ${r.club || ""} ${r.loan ? loanLabel(r).replace(" ", "-") : ""}`.toLowerCase().includes(t);
+      const w = tok.replace(/"/g, "").toLowerCase();
+      return r => `${r.name} ${r.club || ""} ${r.loan ? (r.loan === "trial" ? "trial" : "loan-" + r.loan) : ""} ${r.joins ? t("joins") + " joins" : ""}`.toLowerCase().includes(w);
     }
     const col = findCol(m[1]), op = m[2], raw = m[3].replace(/"/g, "");
     if (!col || raw === "") { bad = true; return () => true; }
@@ -160,11 +200,11 @@ function parseFilter(q) {
                     "=": (a, b) => Math.abs(a - b) < 1e-9, ":": (a, b) => Math.abs(a - b) < 1e-9, "!=": (a, b) => a !== b }[op];
       return r => r[col.key] != null && cmp(r[col.key], n);
     }
-    const t = raw.toLowerCase();
+    const w = raw.toLowerCase();
     return {
-      ":": r => String(r[col.key] ?? "").toLowerCase().includes(t),
-      "=": r => String(r[col.key] ?? "").toLowerCase() === t,
-      "!=": r => String(r[col.key] ?? "").toLowerCase() !== t,
+      ":": r => String(r[col.key] ?? "").toLowerCase().includes(w),
+      "=": r => String(r[col.key] ?? "").toLowerCase() === w,
+      "!=": r => String(r[col.key] ?? "").toLowerCase() !== w,
     }[op] || (() => { bad = true; return true; });
   });
   return { tests, bad };
@@ -173,7 +213,7 @@ function parseFilter(q) {
 function render() {
   const { tests, bad } = parseFilter(input.value);
   input.classList.toggle("bad", bad);
-  view = DATA.filter(r => tests.every(t => t(r))).sort((a, b) => {
+  view = DATA.filter(r => tests.every(f => f(r))).sort((a, b) => {
     const x = a[sortKey], y = b[sortKey];
     if (x == null || y == null) return (x == null) - (y == null);  // blanks always last
     return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * dir;
@@ -182,7 +222,7 @@ function render() {
   cur.c = Math.max(0, Math.min(cur.c, COLS.length - 1));
   document.getElementById("count").textContent = `${view.length}/${DATA.length}`;
   document.getElementById("head").innerHTML = COLS.map((c, ci) =>
-    `<th data-key="${c.key}" class="${c.num ? "num" : ""} ${c.key === sortKey ? "sorted " + (dir > 0 ? "asc" : "desc") : ""} ${ci === cur.c ? "curcol" : ""}">${c.label}</th>`).join("");
+    `<th data-key="${c.key}" class="${c.num ? "num" : ""} ${c.key === sortKey ? "sorted " + (dir > 0 ? "asc" : "desc") : ""} ${ci === cur.c ? "curcol" : ""}">${esc(c.label)}</th>`).join("");
   document.getElementById("body").innerHTML = view.map((r, ri) => `<tr class="${ri === cur.r ? "currow" : ""}">` + COLS.map((c, ci) => {
     const v = r[c.key], at = ri === cur.r && ci === cur.c ? " cur" : "";
     if (v == null) return `<td class="${c.num ? "num " : ""}dim${at}">–</td>`;
@@ -190,8 +230,8 @@ function render() {
     if (c.fmt === "range") return `<td class="num${at}">${r.valueLo === v ? FMT.money(v) : FMT.money(r.valueLo) + "–" + FMT.money(v)}</td>`;
     if (c.fmt === "yesno") return `<td class="${v === "yes" ? "t4" : "dim"}${at}">${v}</td>`;
     if (c.fmt) return `<td class="num ${tier(v, RANGE[c.fmt])}${at}">${FMT[c.fmt](v)}</td>`;
-    if (c.key === "name") return `<td class="${at}">${v}${r.loan ? `<span class="loan ${r.loan}">${loanLabel(r)}</span>` : ""}</td>`;
-    return `<td class="${c.num ? "num" : "text"}${at}">${v}</td>`;
+    if (c.key === "name") return `<td class="name${at}">${esc(v)}${r.loan ? `<span class="loan ${r.loan}">${loanLabel(r)}</span>` : ""}${joinsTag(r)}</td>`;
+    return `<td class="${c.num ? "num" : "text"}${at}">${esc(v)}</td>`;
   }).join("") + "</tr>").join("");
   document.querySelector("td.cur")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   save();
@@ -259,10 +299,10 @@ function windowDates(H) {
   return [...win.values()].map(w => w.h).sort((a, b) => b.date.localeCompare(a.date));
 }
 
-// Game time since a date, to the save's latest game date (any screenshot): "1.5 years"; blank for now (0.0)
+// Game time since a date, to the save's latest game date: "1.5 years"; blank for now (0.0)
 const yearsAgo = d => {
   const y = SITE.gameDate ? ((new Date(SITE.gameDate) - new Date(d)) / 31557600000).toFixed(1) : "0.0";
-  return y === "0.0" ? "" : `${y} years`;
+  return y === "0.0" ? "" : `${y} ${t("years")}`;
 };
 
 // Player history: one row per observation date, then attribute values by date
@@ -273,9 +313,9 @@ function showDetail(r) {
     `<span class="chg ${v > p ? "t4" : "t0"}">${FMT.delta(v - p)}</span>`;
   const scoreRows = H.map((h, i) => {
     const p = H[i - 1];
-    return `<tr><td>${h.date}</td><td class="text">${h.club}</td><td class="num">${h.age ?? "–"}</td>` +
-      pos.map(k => `<td class="num ${tier(h[k], RANGE.f1)}">${FMT.f1(h[k])}${chg(h[k], p?.[k])}</td>`).join("") +
-      `<td class="text">${h.best ?? "–"}</td>${vs ? `<td class="num ${tier(h.vsAge, RANGE.pct)}">${FMT.pct(h.vsAge)}</td>` : ""}</tr>`;
+    return `<tr><td>${h.date}</td><td class="text">${esc(h.club)}</td><td class="num">${h.age ?? "–"}</td>` +
+      pos.map(k => `<td class="num ${h[k] == null ? "dim" : tier(h[k], RANGE.f1)}">${h[k] == null ? "–" : FMT.f1(h[k])}${h[k] == null ? "" : chg(h[k], p?.[k])}</td>`).join("") +
+      `<td class="text">${h.best ?? "–"}</td>${vs ? `<td class="num ${h.vsAge == null ? "dim" : tier(h.vsAge, RANGE.pct)}">${h.vsAge == null ? "–" : FMT.pct(h.vsAge)}</td>` : ""}</tr>`;
   }).join("");
   // Attributes ranked by the best position's (or staff role's) weight, alphabetical within a weight
   const wpos = [last.best].filter(k => WEIGHTS[k]), wt = a => wpos.length ? WEIGHTS[wpos[0]][a] ?? 0 : 0;
@@ -292,17 +332,17 @@ function showDetail(r) {
     return v == null ? `<td class="num dim">–</td>` :
       `<td class="num ${tier(v, RANGE.attr)}">${v}${p == null || p === v ? "" : `<span class="chg ${v > p ? "t4" : "t0"}">${v > p ? "+" : "−"}${Math.abs(v - p)}</span>`}</td>`;
   }).join("") + "</tr>").join("");
+  const subtitle = [r.club, r.age != null && r.age + "y", ...("job" in r ? [r.job, r.personality] : [last.leftFoot && `${t("leftFoot")} ${last.leftFoot}`, r.loan && loanLabel(r), r.joins && `${t("joins")} ${r.joins}`])].filter(Boolean);
   document.getElementById("detailbody").innerHTML = `
-    <div class="ttitle">${r.name} <span class="sub">· ${[r.club, r.age != null && r.age + "y",
-      ...("job" in r ? [r.job, r.personality] : ["left foot " + (last.leftFoot ?? "–"), r.loan && loanLabel(r)])].filter(Boolean).join(" · ")}</span></div>
-    ${H.length === 1 ? `<div class="sub">Only one observation so far (${last.date}); changes appear once you add screenshots from a later game date.</div>` : ""}
-    <table><thead><tr><th>Date</th><th>Club</th><th class="num">Age</th>${pos.map(k => `<th class="num">${k}</th>`).join("")}<th>Best</th>${vs ? `<th class="num">vs Age</th>` : ""}</tr></thead>
+    <div class="ttitle">${esc(r.name)} <span class="sub">· ${subtitle.map(esc).join(" · ")}</span></div>
+    ${H.length === 1 ? `<div class="sub">${t("oneObs").replace("{date}", last.date)}</div>` : ""}
+    <table><thead><tr><th>${t("date")}</th><th>${t("club2")}</th><th class="num">${t("age")}</th>${pos.map(k => `<th class="num">${k}</th>`).join("")}<th>${t("bestCol")}</th>${vs ? `<th class="num">${t("vsAge")}</th>` : ""}</tr></thead>
       <tbody>${scoreRows}</tbody></table>
-    <div class="ttitle">Attributes</div>
-    <table><thead>${wpos.length ? `<tr><th></th><th class="group wt${gr ? " nb" : ""}">weight</th>${gr ? `<th class="group wt">growth</th>` : ""}<th class="group" colspan="${AH.length}">value</th></tr>` : ""}
+    ${attrs.length ? `<div class="ttitle">${t("attributes")}</div>
+    <table><thead>${wpos.length ? `<tr><th></th><th class="group wt${gr ? " nb" : ""}">${t("weight")}</th>${gr ? `<th class="group wt">${t("growth")}</th>` : ""}<th class="group" colspan="${AH.length}">${t("value")}</th></tr>` : ""}
       <tr><th class="ago"></th>${wpos.map(() => `<th class="wt ago${gr ? " nb" : ""}"></th>`).join("")}${gr ? `<th class="wt ago"></th>` : ""}${AH.map(h => `<th class="num ago">${yearsAgo(h.date)}</th>`).join("")}</tr>
       <tr><th></th>${wpos.map(k => `<th class="num wt${gr ? " nb" : ""}">${k}</th>`).join("")}${gr ? `<th class="num wt">${yearsAgo(H[0].date)}</th>` : ""}${AH.map(h => `<th class="num">${h.date}</th>`).join("")}</tr></thead>
-      <tbody>${attrRows}</tbody></table>`;
+      <tbody>${attrRows}</tbody></table>` : ""}`;
   detail.classList.add("show");
 }
 
@@ -312,15 +352,15 @@ function renderFilters() {
   const main = document.getElementById("main");
   main.className = "tiles";
   main.innerHTML = DATA.map(f => `<div class="tile">
-    <div class="ttitle">${f.pos}${f.title ? ` <span class="sub">· ${f.title}</span>` : ""}</div>
+    <div class="ttitle">${esc(f.pos)}${f.title ? ` <span class="sub">· ${esc(f.title)}</span>` : ""}</div>
     <table>
-      <thead><tr><th>Attribute</th><th class="num wt">Wt</th>${f.players.map(p =>
-        `<th class="num">${p.name}<br><span class="sub">${p.age != null ? p.age + "y · " : ""}${p.score.toFixed(1)}</span></th>`).join("")}<th class="num search">Search ≥</th></tr></thead>
+      <thead><tr><th>${t("attribute")}</th><th class="num wt">${t("wt")}</th>${f.players.map(p =>
+        `<th class="num">${esc(p.name)}<br><span class="sub">${p.age != null ? p.age + "y · " : ""}${p.score.toFixed(1)}</span></th>`).join("")}<th class="num search">${t("searchMin")}</th></tr></thead>
       <tbody>${f.rows.map(r => `<tr class="${r.min == null ? "minor" : ""}"><td>${r.attr}</td><td class="num wt">×${r.weight}</td>${r.values.map((v, i) =>
         `<td class="num ${tier(v, RANGE.attr)}">${r.labels ? r.labels[i] : v}</td>`).join("")}<td class="num search">${r.min == null ? "–" : r.min}</td></tr>`).join("")}</tbody>
     </table></div>`).join("");
 }
-// Grid page: DATA = { slots: [{ label, pos, senior: [player|null ×3], youth: [...] }], spare, spareYouth, loanOut } (grid() in score.py)
+// Line-up page: DATA = { slots: [{ label, pos, senior: [player|null ×3], youth: [...] }], spare, spareYouth, loanOut } (grid() in score.py)
 function renderGrid() {
   input.style.visibility = "hidden";
   const main = document.getElementById("main"), d = DATA, n = 3;
@@ -335,22 +375,22 @@ function renderGrid() {
     (youth ? `<span class="v ${tier(p.v, RANGE.pct)}">${FMT.pct(p.v)}</span><span class="age">${FMT.f1(p.score)}</span>` :
       `<span class="v ${tier(p.score, RANGE.f1)}">${FMT.f1(p.score)}</span>`) +
     (p.pct != null ? `<span class="v ${tier(p.pct, RANGE.pct)}">${FMT.pct(p.pct)}</span>` : "") +
-    (youth || p.pct != null ? `<span class="age">${p.age}y</span>` : "") + (youth && p.left ? `<span class="foot" title="left foot Fairly Strong or better">L</span>` : "") + (p.loan ? `<span class="loan ${p.loan}">${loanLabel(p)}</span>` : "") + "</div>";
+    (youth || p.pct != null ? `<span class="age">${p.age}y</span>` : "") + (youth && p.left ? `<span class="foot" title="${t("leftTitle")}">L</span>` : "") + (p.loan ? `<span class="loan ${p.loan}">${loanLabel(p)}</span>` : "") + joinsTag(p) + "</div>";
   const cell = (ps, youth, ri, ci) => {
     const at = ri === cur.r && ci === cur.c;
     return `<td class="${ci === n || ci === 2 * n ? "split" : ""}${at && !ps.length ? " cur" : ""}" data-r="${ri}" data-c="${ci}">` +
       (ps.length ? ps.map((p, k) => entry(p, youth, at && k === cur.k)).join("") : `<span class="dim">–</span>`) + "</td>";
   };
-  const heads = ["Starter", "Backup", "Third"];
+  const heads = [t("starter"), t("backup"), t("third")];
   const list = (title, ps, fmt) => ps.length ? `<div><span class="sub">${title}:</span> ${ps.map(p =>
     `<span title="${esc(p.name)}" data-name="${esc(p.name)}">${esc(surname(p.name))}</span> <span class="sub">${p.age}y ${p.pos} ${fmt(p.v)}</span>`).join(" · ")}</div>` : "";
   main.innerHTML = `<table>
-    <thead><tr><th></th>${heads.map(h => `<th>${h}</th>`).join("")}${["Youth", "Intake"].slice(0, groups - 1).map(g => heads.map((h, i) => `<th class="${i ? "" : "split"}">${g} ${i + 1}</th>`).join("")).join("")}</tr></thead>
-    <tbody>${d.slots.map((s, ri) => `<tr><td class="slot" title="scored as ${esc(s.pos)}${s.left ? ", left-footed only" : ""}">${esc(s.label)}</td>` +
+    <thead><tr><th></th>${heads.map(h => `<th>${h}</th>`).join("")}${[t("youth"), t("intake")].slice(0, groups - 1).map(g => heads.map((h, i) => `<th class="${i ? "" : "split"}">${g} ${i + 1}</th>`).join("")).join("")}</tr></thead>
+    <tbody>${d.slots.map((s, ri) => `<tr><td class="slot" title="${t("scoredAs")} ${esc(s.pos)}${s.left ? ", " + t("leftOnly") : ""}">${esc(s.label)}</td>` +
       s.senior.map((ps, i) => cell(ps, false, ri, i)).join("") + s.youth.map((ps, i) => cell(ps, true, ri, n + i)).join("") +
       (groups > 2 ? s.intake.map((ps, i) => cell(ps, true, ri, 2 * n + i)).join("") : "") + "</tr>").join("")}</tbody>
   </table>
-  <div class="notes">${list("Not placed", d.spare, FMT.f1)}${list("Youth not placed", d.spareYouth, FMT.pct)}${list("Out on loan", d.loanOut, FMT.f1)}</div>`;
+  <div class="notes">${list(t("notPlaced"), d.spare, FMT.f1)}${list(t("youthNotPlaced"), d.spareYouth, FMT.pct)}${list(t("onLoan"), d.loanOut, FMT.f1)}</div>`;
 }
 // The grid cell under the cursor: its players (Third can hold several)
 function gridCell(r = cur.r, c = cur.c) {
@@ -372,7 +412,6 @@ document.getElementById("main").addEventListener("click", e => {
   showDetail(DATA.players[el.dataset.name]);
 });
 // Settings page: DATA = [{ path, values }], one per settings file (settings() in score.py)
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function renderSettings() {
   input.style.visibility = "hidden";
   const main = document.getElementById("main");
@@ -381,7 +420,33 @@ function renderSettings() {
     typeof v === "object" ? (v.label ? `${v.label} (${v.pos}${v.left ? ", left" : ""})` : JSON.stringify(v)) : v;
   main.innerHTML = DATA.map(f => `<div class="tile"><div class="ttitle">${esc(f.path)}</div>
     <table>${Object.entries(f.values).map(([k, v]) => `<tr><td class="text">${esc(k)}</td><td class="wrap">${esc(val(v))}</td></tr>`).join("")}</table>
-  </div>`).join("") + `<div class="sub">To change a setting, edit its file, then run <b>python3 score.py</b> again.</div>`;
+  </div>`).join("") + `<div class="sub">${t("settingsNote")}</div>`;
+}
+// Staff plan page: DATA = { tiers: [ceilings], roles: [{ role, name, current: { name, score, wage }, bands: [[candidate...] per tier] }] } (world.staff_plan)
+function renderPlan() {
+  input.style.visibility = "hidden";
+  const main = document.getElementById("main");
+  main.className = "tiles plan";
+  if (!DATA) { main.innerHTML = `<div class="sub">${t("noPlan")}</div>`; return; }
+  const band = (i) => `${i ? FMT.money(DATA.tiers[i - 1]) + "–" : t("upTo") + " "}${FMT.money(DATA.tiers[i])}`;
+  const cand = c => c ? `<div class="cand"><div class="cn">${esc(c.name)} <span class="num ${tier(c.score, RANGE.f1)}">${FMT.f1(c.score)}</span></div>` +
+    `<div class="sub">${esc(c.club)}${c.clubNation && c.clubNation !== c.nation ? ` (${esc(c.clubNation)})` : ""} · ${c.age ?? "–"} · ${esc(c.job || "–")}${c.step ? ` · ${esc(c.step)}` : ""}</div>` +
+    `<div class="sub mono">${FMT.money(c.wage)} ${SITE.wagePeriod} · ${c.contract || "–"}</div></div>` : `<div class="sub">–</div>`;
+  const n = Math.max(1, ...DATA.roles.flatMap(r => r.bands.map(b => b.length)));
+  main.innerHTML = DATA.roles.map(r => `<div class="tile">
+    <div class="ttitle">${esc(r.role)} <span class="sub">· ${esc(r.name)}</span></div>
+    <table><thead><tr><th>${t("now")}</th>${DATA.tiers.map((_, i) => `<th>${band(i)}</th>`).join("")}</tr></thead>
+      <tbody>${Array.from({ length: n }, (_, k) => `<tr><td>${k === 0 ? (r.current ? `<div class="cand"><div class="cn">${esc(r.current.name)} <span class="num ${tier(r.current.score, RANGE.f1)}">${FMT.f1(r.current.score)}</span></div>` +
+          `<div class="sub mono">${r.current.wage != null ? FMT.money(r.current.wage) + " " + SITE.wagePeriod : "–"}</div></div>` : `<div class="sub">–</div>`) : ""}</td>` +
+        r.bands.map(b => `<td>${cand(b[k])}</td>`).join("") + "</tr>").join("")}</tbody></table></div>`).join("");
+}
+// Help page: DATA = [{ title, rows: [[what to say, what happens]] }] (lang.py)
+function renderHelp() {
+  input.style.visibility = "hidden";
+  const main = document.getElementById("main");
+  main.className = "help";
+  main.innerHTML = DATA.map(s => `<div class="tile"><div class="ttitle">${esc(s.title)}</div>
+    <table>${s.rows.map(([q, a]) => `<tr><td>${esc(q)}</td><td>${a}</td></tr>`).join("")}</table></div>`).join("");
 }
 document.getElementById("head").addEventListener("click", e => {
   const ci = COLS.findIndex(c => c.key === e.target.dataset.key);
@@ -404,7 +469,7 @@ document.addEventListener("copy", e => {
   e.clipboardData.setData("text/plain", name);
   e.preventDefault();
   const count = document.getElementById("count");
-  count.textContent = `copied ${name}`; count.classList.add("copied");
+  count.textContent = `${t("copied")} ${name}`; count.classList.add("copied");
   clearTimeout(count.timer);
   count.timer = setTimeout(() => { count.classList.remove("copied"); if (PAGE === "grid") count.textContent = ""; else render(); }, 1200);
 });
@@ -412,8 +477,20 @@ input.addEventListener("input", () => { cur.r = 0; render(); });
 help.addEventListener("click", e => { if (e.target === help) help.classList.remove("show"); });
 detail.addEventListener("click", e => { if (e.target === detail) detail.classList.remove("show"); });
 document.getElementById("helphint").addEventListener("click", e => { e.preventDefault(); help.classList.add("show"); });
-if (PAGE.endsWith("staff")) input.placeholder = "/ filter  e.g. job:coach PosTct>=12 personality:prof";
-if (PAGE === "filters" || PAGE === "staff_filters") renderFilters(); else if (PAGE === "grid") renderGrid(); else if (PAGE === "settings") renderSettings(); else render();
+// The keyboard shortcuts overlay (?), in the page's language
+{
+  const K = t("keys"), pages = Object.entries(SITE.keys).filter(([p]) => !SITE.hidden.includes(p)).map(([p, k]) => `<b>${k}</b> ${esc(SITE.labels[p])}`).join(" · ");
+  document.getElementById("helpTitle").textContent = t("shortcuts");
+  document.getElementById("helpTable").innerHTML = [["", pages], ["← ↑ ↓ →", K.move], ["enter", K.enter], ["c / ⌘C", K.copy], ["s", K.sort], ["/ f", K.filter], ["esc", K.clear], ["?", K.help]]
+    .map(([k, v]) => `<tr><td><b>${k}</b></td><td>${v}</td></tr>`).join("") + `<tr><td colspan="2" class="sub">${K.syntax}</td></tr>`;
+}
+input.placeholder = `/ ${t("filter")}  ${PAGE.endsWith("staff") || PAGE === "recruit" ? t("staffFilterHint") : t("filterHint")}`;
+// Search pages: the searches as buttons, the picked one's query, its rows
+if (SEARCHES) {
+  document.getElementById("note").addEventListener("click", e => { const b = e.target.closest("button[data-key]"); if (b) pickSearch(b.dataset.key); });
+  if (SEARCHES.length) pickSearch(picked); else { DATA = []; document.getElementById("note").textContent = t("noSearch"); render(); }
+}
+else if (PAGE === "filters" || PAGE === "staff_filters") renderFilters(); else if (PAGE === "grid") renderGrid(); else if (PAGE === "settings") renderSettings(); else if (PAGE === "help") renderHelp(); else if (PAGE === "plan") renderPlan(); else render();
 </script>
 </body>
 </html>

@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 __THEME__
   .bar { flex-wrap: wrap; }
   .seg { display: flex; gap: 2px; align-items: center; }
   .seg .lbl { color: var(--dim); margin-right: 4px; }
-  .seg button { font: inherit; color: var(--dim); background: transparent; border: 1px solid var(--line); padding: 0 8px; cursor: pointer; }
-  .seg button.on { color: var(--desk); background: var(--cyan); border-color: var(--cyan); font-weight: 700; }
-  select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); padding: 0 4px; }
+  .seg button { font: inherit; color: var(--dim); background: var(--bg); border: 1px solid var(--line); padding: 3px 10px; cursor: pointer; border-radius: 6px; }
+  .seg button.on { color: var(--desk); background: var(--cyan); border-color: var(--cyan); font-weight: 600; }
+  select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); padding: 3px 6px; border-radius: 6px; }
   select:focus { outline: 1px solid var(--cyan); }
   .legend { display: flex; gap: 14px; color: var(--dim); margin-left: auto; }
   .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
-  .tile { background: var(--bg); border: 2px solid var(--blue); padding: 12px 14px; min-width: 0; }
-  .ttitle { color: var(--cyan); font-weight: 700; }
+  .tile { min-width: 0; overflow: hidden; }
+  .legend { margin-left: auto; }
   .tsub { color: var(--dim); font-size: 12px; margin-bottom: 4px; }
   .tsub b { color: var(--fg); font-weight: normal; }
   .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -43,19 +43,29 @@ __THEME__
 </style>
 </head>
 <body>
+<div class="app">
+<aside class="side">
+  <div class="brand"><div class="club">__HOME__</div><div class="sub" id="gamedate"></div></div>
+  <nav class="nav">__NAV__</nav>
+  <div class="kpis" id="kpis"></div>
+</aside>
+<main class="main">
+<div class="phead"><h1>__PAGETITLE__</h1><p class="pdesc">__PAGEDESC__</p></div>
 <div class="bar">
-  <span class="pages">__NAV__</span>
-  <span class="seg"><span class="lbl">division</span><select id="division"></select></span>
-  <span class="seg"><span class="lbl">club</span><select id="club"></select></span>
-  <span class="seg" id="pos"><span class="lbl">position</span></span>
-  <span class="seg" id="speed"><span class="lbl">attribute</span></span>
+  <span class="seg"><span class="lbl" id="l-division"></span><select id="division"></select></span>
+  <span class="seg"><span class="lbl" id="l-club"></span><select id="club"></select></span>
+  <span class="seg" id="pos"><span class="lbl" id="l-pos"></span></span>
+  <span class="seg" id="speed"><span class="lbl" id="l-speed"></span></span>
   <span class="legend"><span><i style="background:var(--blue)"></i><span id="lLeague"></span> <span id="nLeague"></span></span><span><i style="background:var(--orange)"></i><span id="lClub"></span> <span id="nSquad"></span></span></span>
 </div>
+<div class="note" id="note"></div>
 <div class="grid">
-  <div class="tile"><div class="ttitle">Role score by position</div><div id="strip-score"></div></div>
+  <div class="tile"><div class="ttitle" id="t-strip-score"></div><div id="strip-score"></div></div>
   <div class="tile"><div class="ttitle" id="t-strip-speed"></div><div id="strip-speed"></div></div>
 </div>
 <div class="grid" id="scatters"></div>
+</main>
+</div>
 <div id="tip"></div>
 <script>
 const { positions: POSITIONS, players: DATA, managed: MANAGED, division: HOME_DIVISION } = __DATA__;
@@ -66,6 +76,16 @@ const DIVISIONS = Object.keys(perDivision).filter(d => perDivision[d] >= MIN_DIV
 const short = d => d.replace(/^Sky Bet /, "");
 const SPEEDS = { Acceleration: "Acceleration", Pace: "Pace", "Jumping Reach": "Jumping Reach", Agility: "Agility" };
 const STORE = "fm:__SAVE__:charts", SITE = __SITE__;
+const t = k => SITE.t[k] ?? k;  // the chrome's strings, in config.toml's language (lang.py)
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// Sidebar: the game date and the club's headline numbers (from the save file); pages served by `score.py serve` reload on a rebuild
+document.getElementById("gamedate").innerHTML = [SITE.gameDate && `${t("header").gameDate} <b>${SITE.gameDate}</b>`, `${t("header").built} ${SITE.built}`].filter(Boolean).join("<br>");
+document.getElementById("kpis").innerHTML = SITE.kpis.map(k => `<div class="kpi"><div class="l">${esc(k.label)}</div><div class="v">${esc(k.value)}</div></div>`).join("");
+for (const [id, k] of [["l-division", "division"], ["l-club", "club"], ["l-pos", "position"], ["l-speed", "attributeLabel"], ["t-strip-score", "roleScore"]]) document.getElementById(id).textContent = t(k);
+if (!DIVISIONS.length) document.getElementById("note").textContent = t("noLeague");
+if (location.protocol.startsWith("http")) {
+  let v0; setInterval(async () => { try { const v = await (await fetch("/_version", { cache: "no-store" })).text(); if (v0 && v !== v0) location.reload(); v0 = v; } catch (e) {} }, 3000);
+}
 let state = { pos: POSITIONS.find(p => p !== "GK") || POSITIONS[0], speed: "Acceleration",
               division: DIVISIONS.includes(HOME_DIVISION) ? HOME_DIVISION : DIVISIONS[0], club: MANAGED };
 try { Object.assign(state, JSON.parse(localStorage.getItem(STORE) || "{}")); } catch (e) {}
@@ -113,9 +133,9 @@ function hover(p, e) {
   if (!p) { tip.style.display = "none"; return; }
   document.querySelectorAll(`.dot[data-name="${CSS.escape(p.name)}"]`).forEach(d => { d.classList.add("hl"); d.parentNode.appendChild(d); });
   const sc = Object.entries(p.scores).map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ");
-  tip.innerHTML = `<div class="nm">${p.name}</div><div class="d">${p.club} · ${p.age} · ${p.wage == null ? "–" : money(p.wage) + " p/w"}</div>` +
-    `<div>${sc} <span class="d">(best ${p.best})</span></div>` +
-    `<div>${p.rating == null ? "" : `rating ${p.rating.toFixed(2)} <span class="d">in ${p.minutes} mins</span> · `}acc ${p.Acceleration ?? "–"} · pace ${p.Pace ?? "–"} · ${p.Agility != null ? `agility ${p.Agility}` : `jump ${p["Jumping Reach"] ?? "–"}`}</div>`;
+  tip.innerHTML = `<div class="nm">${esc(p.name)}</div><div class="d">${esc(p.club)} · ${p.age} · ${p.wage == null ? "–" : money(p.wage) + " " + SITE.wagePeriod}</div>` +
+    `<div>${sc} <span class="d">(${t("best")} ${p.best})</span></div>` +
+    `<div>${p.rating == null ? "" : `${t("rating")} ${p.rating.toFixed(2)} <span class="d">${t("inMins").replace("{n}", p.minutes)}</span> · `}acc ${p.Acceleration ?? "–"} · pace ${p.Pace ?? "–"} · ${p.Agility != null ? `agility ${p.Agility}` : `jump ${p["Jumping Reach"] ?? "–"}`}</div>`;
   tip.style.display = "block";
   const x = e.clientX + 14, y = e.clientY + 14, w = tip.offsetWidth, h = tip.offsetHeight;
   tip.style.left = Math.min(x, innerWidth - w - 8) + "px"; tip.style.top = (y + h > innerHeight ? e.clientY - h - 10 : y) + "px";
@@ -235,14 +255,14 @@ function render() {
   document.getElementById("nLeague").textContent = VIEW.filter(p => !p.hl).length;
   document.getElementById("nSquad").textContent = VIEW.filter(p => p.hl).length;
   const sp = SPEEDS[state.speed];
-  document.getElementById("t-strip-speed").textContent = `${sp} attribute by position`;
-  strip("strip-score", (p, pos) => p.scores[pos], "role score", inGroup, undefined, true, 10);
+  document.getElementById("t-strip-speed").textContent = `${sp} ${t("byPosition")}`;
+  strip("strip-score", (p, pos) => p.scores[pos], t("roleScore").toLowerCase(), inGroup, undefined, true, 10);
   strip("strip-speed", p => speed(p), sp, (p, pos) => p.best === pos, 2);
   document.getElementById("scatters").innerHTML = "";
   const pos = state.pos, score = p => p.scores[pos], rating = p => p.rating, spd = p => speed(p);
-  scatter({ title: `${pos} score vs wage`, x: p => p.wage || null, y: score, xl: "wage p/w (log)", yl: `${pos} score`, log: true });
-  scatter({ title: `${pos} score vs average rating`, x: rating, y: score, xl: "average rating", yl: `${pos} score` });
-  scatter({ title: `${sp} vs average rating`, x: spd, y: rating, xl: sp, yl: "rating", jitter: 0.35 });
+  scatter({ title: `${pos} ${t("scoreVsWage")}`, x: p => p.wage || null, y: score, xl: `${t("wageAxis")} ${SITE.wagePeriod} (log)`, yl: `${pos} score`, log: true });
+  scatter({ title: `${pos} ${t("scoreVsRating")}`, x: rating, y: score, xl: t("ratingAxis"), yl: `${pos} score` });
+  scatter({ title: `${sp} ${t("vsRating")}`, x: spd, y: rating, xl: sp, yl: t("rating"), jitter: 0.35 });
 }
 function set(k, v) { state[k] = v; save(); render(); }
 
