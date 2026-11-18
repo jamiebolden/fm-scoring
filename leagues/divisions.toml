@@ -1,6 +1,7 @@
 # Division codes for the players page: FM's database ids (the same in every save) -> short codes.
 # [divisions]: a league's competition database id -> its code: the nation, then the tier (ENG3 = League One).
-# A club in none of these (its league isn't loaded in the save) shows its nation's code alone (ESP).
+# A club in none of these shows its nation's code alone (ESP), or, in a nation with leagues here, the tier below them
+# (ENG7: English clubs below the National League North and South, whose leagues aren't loaded).
 # Add a league once it's loaded in a save: score.py import lists any it can't name.
 
 [divisions]
@@ -9,8 +10,8 @@
 13 = "ENG3"        # League One
 14 = "ENG4"        # League Two
 109201 = "ENG5"    # National League
-5123054 = "ENG6N"  # National League North
-5123055 = "ENG6S"  # National League South
+5123054 = "ENG6"   # National League North
+5123055 = "ENG6"   # National League South
 
 # [nations]: a nation's database id -> its FIFA code (clubs' and players' nations)
 [nations]

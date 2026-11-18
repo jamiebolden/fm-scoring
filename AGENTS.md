@@ -6,8 +6,8 @@ transcribes them to CSV. The managed club's own squad and staff can instead be r
 
 1. **squad**: the club the user manages
 2. **players**: every player in the game, from the save file (`world/`), with three toggles, on by default: reputation up to
-   the squad's best, England (clubs in England's leagues, and English free agents), and the managed club's division and below.
-   100 rows per page. Without a save file: every other player they've screenshotted
+   the squad's best, England (clubs in England's leagues, and English free agents), and divisions below the managed club's.
+   100 rows per page (`n` / `p`). Without a save file: every other player they've screenshotted
 3. **last**: just the players from the most recent set of screenshots (e.g. one transfer search); `b` / `B` step back
    through the last 3 sets (earlier `last_batch` / `last_names` values, from the `saves/` repo's history of save.toml)
 4. **filters**: per position, the squad's best players and suggested minimums for FM's player search
@@ -103,8 +103,9 @@ About 30 seconds.
   every visible attribute. Each import adds a file, so history builds up (by fmsave's uid, not by name). Players fmsave
   can't name (~0.6%) are left out.
 - Division: a club's first team's league, coded in `leagues/divisions.toml` (`ENG3`); clubs whose league isn't loaded in
-  the save show their nation's code alone (`ESP`, or `ENG` below step 6). `import` names any one-nation league it finds
-  with no code: add it to `[divisions]` (nation code + tier; parallel leagues get a letter, `ENG6N`).
+  the save show their nation's code alone (`ESP`), or the tier below its coded leagues (`ENG7`: below the National
+  League North and South, both `ENG6`). `import` names any one-nation league it finds with no code: add it to
+  `[divisions]` (nation code + tier).
 - These are every player's true attributes. This user plays with attribute masking off, so that's what FM shows them;
   someone playing with it on would see more here than in FM.
 - It stops if the save manages another club or is dated before the save's latest observation.
@@ -177,7 +178,7 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
 - **Players page from the save:** the page holds compact rows (attributes one letter each) and scores them in the browser,
   the same way as `score.py` (`scoreAttrs` in template.html: keep the two in step). The history overlay loads
   `out/<save>/history/<uid % 128>.js`, written from every world file. Toggles: `r` reputation ≤ the squad's best
-  (`cap`), `e` England, `l` the managed club's tier and below (a code with no tier passes).
+  (`cap`), `e` England, `l` tiers below the managed club's (a code with no tier passes).
 - **Charts page:** players whose latest observation is a league search (a `Division` column), grouped by best role for the by-position strips.
   A division the save hasn't searched (fewer than 20 players, `MIN_DIVISION`) comes from `leagues/` instead, marked `(shared)` in the dropdown;
   each shared file loads on its own, so its players have no history.

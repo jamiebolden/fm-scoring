@@ -74,8 +74,9 @@ __THEME__
                     padding: 1px 8px; cursor: pointer; }
   #toggles button.on { color: var(--cyan); border-color: var(--cyan); }
   #toggles button u { text-decoration: none; color: var(--fg); }
-  #pager { display: none; color: var(--dim); white-space: nowrap; user-select: none; }
-  #pager a { color: var(--cyan); cursor: pointer; padding: 0 4px; }
+  #pager { display: none; color: var(--dim); padding: 10px 10px 2px; user-select: none; }
+  #pager a { color: var(--cyan); cursor: pointer; }
+  #pager b { color: var(--fg); font-weight: normal; }
 </style>
 </head>
 <body>
@@ -84,7 +85,6 @@ __THEME__
   <input id="filter" placeholder="/ filter  e.g. age<=24 best=CB vs>=90 left=yes" spellcheck="false" autocomplete="off">
   <span id="toggles"></span>
   <span id="count"></span>
-  <span id="pager"><a id="prev">‹</a><a id="next">›</a></span>
   <span id="batch" title="b: older batch · B: newer"></span>
   <a class="helphint" href="#" id="helphint"><b>?</b> keyboard shortcuts</a>
 </div>
@@ -93,6 +93,7 @@ __THEME__
     <thead><tr id="head"></tr></thead>
     <tbody id="body"></tbody>
   </table>
+  <div id="pager"></div>
 </div>
 <div id="detail"><div class="tile" id="detailbody"></div></div>
 <div id="help"><div class="tile">
@@ -106,8 +107,8 @@ __THEME__
     <tr><td><b>s</b></td><td>sort by the cursor's column (again to reverse)</td></tr>
     <tr><td><b>/</b> or <b>f</b></td><td>filter box (<b>enter</b> / <b>esc</b> to leave it)</td></tr>
     <tr><td><b>esc</b></td><td>clear the filter</td></tr>
-    <tr><td><b>pgdn</b> / <b>pgup</b></td><td>next / previous 100 rows (or <b>n</b> / <b>p</b>, or ‹ ›; the cursor moves on past the last row too)</td></tr>
-    <tr><td><b>r</b> <b>e</b> <b>l</b></td><td>players page from the save: reputation up to your squad's best · clubs in England (and English free agents) · your division and below</td></tr>
+    <tr><td><b>n</b> / <b>p</b></td><td>next / previous page of 100 rows</td></tr>
+    <tr><td><b>r</b> <b>e</b> <b>l</b></td><td>players page from the save: reputation up to your squad's best · clubs in England (and English free agents) · divisions below yours</td></tr>
     <tr><td><b>b</b> / <b>B</b></td><td>last screenshots pages: the previous / next of the last few batches (or click the batch name)</td></tr>
     <tr><td><b>?</b></td><td>show / hide this</td></tr>
     <tr><td colspan="2" class="sub">filters: <b>col:text</b> contains · <b>col=x</b> · <b>col!=x</b> · <b>col&lt;n</b> <b>col&lt;=n</b> <b>col&gt;n</b> <b>col&gt;=n</b><br>
@@ -184,7 +185,7 @@ const MY_TIER = WORLD && tierOf(WORLD.myDiv);
 const TOGGLES = !WORLD ? [] : [
   { key: "rep", hint: "r", label: "<u>r</u>ep cap", title: `reputation up to ${WORLD.managed}'s best player's`, test: r => WORLD.cap == null || r.rep <= WORLD.cap },
   { key: "eng", hint: "e", label: "<u>E</u>ngland", title: "clubs in England's leagues, and English free agents", test: r => r.div ? r.div.startsWith("ENG") : r.nat === "ENG" },
-  { key: "lower", hint: "l", label: "<u>l</u>ower divs", title: `${WORLD.myDiv || "your division"} and below`, test: r => { const t = tierOf(r.div); return t == null || MY_TIER == null || t >= MY_TIER; } },
+  { key: "lower", hint: "l", label: "<u>l</u>ower divs", title: `divisions below ${WORLD.myDiv || "yours"}`, test: r => { const t = tierOf(r.div); return t == null || MY_TIER == null || t > MY_TIER; } },
 ];
 let toggles = Object.fromEntries(TOGGLES.map(t => [t.key, true]));
 const PAGE_ROWS = 100;
@@ -264,7 +265,9 @@ function render(again = true) {
   const shown = view.slice(pageStart, pageStart + PAGE_ROWS), n = x => x.toLocaleString("en-GB");
   document.getElementById("count").textContent = view.length > PAGE_ROWS ?
     `${n(pageStart + 1)}–${n(pageStart + shown.length)} of ${n(view.length)}/${n(base.length)}` : `${n(view.length)}/${n(base.length)}`;
-  document.getElementById("pager").style.display = view.length > PAGE_ROWS ? "inline" : "none";
+  const pager = document.getElementById("pager"), pages = Math.ceil(view.length / PAGE_ROWS), pg = pageStart / PAGE_ROWS + 1;
+  pager.style.display = pages > 1 ? "block" : "none";
+  pager.innerHTML = `page <b>${pg}</b> of ${pages}` + (pg < pages ? ` · <a data-step="1"><b>n</b> next</a>` : "") + (pg > 1 ? ` · <a data-step="-1"><b>p</b> previous</a>` : "");
   const tg = document.getElementById("toggles");
   tg.style.display = TOGGLES.length ? "inline-flex" : "none";
   tg.innerHTML = TOGGLES.map(t => `<button data-t="${t.key}" class="${toggles[t.key] ? "on" : ""}" title="${t.title} (${t.hint})">${t.label}</button>`).join("");
@@ -314,10 +317,12 @@ document.addEventListener("keydown", e => {
   if (PAGES[e.key] && PAGES[e.key] !== PAGE) { location.href = PAGES[e.key] + ".html"; return; }
   if (!TABLE) return;
   const move = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
-  const jump = { PageDown: PAGE_ROWS, PageUp: -PAGE_ROWS, n: PAGE_ROWS, p: -PAGE_ROWS }[e.key];
+  const jump = { n: 1, p: -1 }[e.key];
   const toggle = TOGGLES.find(t => t.hint === e.key);
-  if (move) { cur.r += move[0]; cur.c += move[1]; render(false); }
-  else if (jump) { cur.r = Math.max(0, Math.min(Math.floor(cur.r / PAGE_ROWS) * PAGE_ROWS + jump, view.length - 1)); render(false); }
+  if (move) {  // the arrows move the cursor within this page; n / p change page
+    cur.r = Math.max(pageStart, Math.min(cur.r + move[0], pageStart + PAGE_ROWS - 1)); cur.c += move[1]; render(false);
+  }
+  else if (jump) turnPage(jump);
   else if (toggle) flip(toggle.key);
   else if (e.key === "s") sortBy(cur.c);
   else if (e.key === "c") document.execCommand("copy");
@@ -370,6 +375,10 @@ function openDetail(r) {
   document.head.appendChild(el);
 }
 function flip(key) { toggles[key] = !toggles[key]; cur.r = 0; render(); }
+function turnPage(step) {  // to the next / previous page's first row
+  const to = pageStart + step * PAGE_ROWS;
+  if (to >= 0 && to < view.length) { cur.r = to; render(false); }
+}
 
 // Player history: one row per observation date, then attribute values by date
 function showDetail(r) {
@@ -493,10 +502,7 @@ function cycleBatch(step) {
 }
 document.getElementById("batch").addEventListener("click", () => BATCHES.length > 1 && cycleBatch(1));
 document.getElementById("toggles").addEventListener("click", e => { const b = e.target.closest("button"); if (b) flip(b.dataset.t); });
-for (const [id, step] of [["prev", -PAGE_ROWS], ["next", PAGE_ROWS]])
-  document.getElementById(id).addEventListener("click", () => {
-    cur.r = Math.max(0, Math.min(Math.floor(cur.r / PAGE_ROWS) * PAGE_ROWS + step, view.length - 1)); render(false);
-  });
+document.getElementById("pager").addEventListener("click", e => { const a = e.target.closest("a"); if (a) turnPage(+a.dataset.step); });
 help.addEventListener("click", e => { if (e.target === help) help.classList.remove("show"); });
 detail.addEventListener("click", e => { if (e.target === detail) detail.classList.remove("show"); });
 document.getElementById("helphint").addEventListener("click", e => { e.preventDefault(); help.classList.add("show"); });

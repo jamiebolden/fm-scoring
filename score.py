@@ -697,7 +697,12 @@ def club_divisions(tmp, clubs):
             div.update({u: codes["divisions"][db] for u in uids})
         elif len({clubs[u]["nation_id"] for u in uids if u in clubs}) == 1:  # one nation's league (not a continental one): no code yet
             unnamed[db] = [clubs[u]["short_name"] for u in uids[:4] if u in clubs]
-    return div, nations, unnamed
+    # a nation with coded leagues: its clubs in none of them are below them all (ENG7: English clubs below step 6)
+    bottom = {}
+    for code in codes["divisions"].values():
+        m = re.match(r"([A-Z]{3})(\d+)", code)
+        bottom[m.group(1)] = max(bottom.get(m.group(1), 0), int(m.group(2)))
+    return {u: f"{d}{bottom[d] + 1}" if d in bottom else d for u, d in div.items()}, nations, unnamed
 
 
 def import_save(save, config, save_file=None):
