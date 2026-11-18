@@ -219,6 +219,41 @@ def filters(squad, w):
 CHART_ATTRS = ["Acceleration", "Pace", "Stamina", "Strength", "Jumping Reach", "Anticipation", "Concentration"]
 
 
+CORE, CORE_GK = 18, 3  # the charts page's by-position strips, and the filters page's division medians: each club's first team
+
+
+def mark_core(players):
+    """Flag each club's first team (`core`): its top CORE outfield players by %win and top CORE_GK keepers by GKpts, not
+    its whole squad, youth included. The managed club's squad counts as one club. Returns players."""
+    clubs = {}
+    for p in players:
+        clubs.setdefault(None if p["squad"] else p["club"], []).append(p)
+    for ps in clubs.values():
+        for key, n in (("win", CORE), ("pts", CORE_GK)):
+            for p in sorted((p for p in ps if p.get(key) is not None), key=lambda p: -p[key])[:n]:
+                p["core"] = True
+    return players
+
+
+def division_medians(chart):
+    """The filters page's %win tile: each division's median of every CHART_ATTRS attribute over its clubs' core outfield
+    players (as the charts page's strips), then the managed club's. None without a division."""
+    per = {}
+    for p in chart["players"]:
+        if p.get("core") and p["win"] is not None:
+            per.setdefault(chart["managed"] if p["squad"] else p["division"], []).append(p)
+    divs = sorted(d for d, ps in per.items() if d != chart["managed"] and len(ps) >= MIN_DIVISION)
+    if not divs:
+        return None
+    cols = [*divs, *([chart["managed"]] if chart["managed"] in per else [])]
+    def median(vs):
+        vs = sorted(vs)
+        return None if not vs else vs[len(vs) // 2] if len(vs) % 2 else (vs[len(vs) // 2 - 1] + vs[len(vs) // 2]) / 2
+    return {"medians": True, "pos": "%win filter", "title": f"division medians · each club's top {CORE} outfield by %win",
+            "cols": [{"name": c.replace("Sky Bet ", ""), "n": len(per[c]), "squad": c == chart["managed"]} for c in cols],
+            "rows": [{"attr": a, "values": [median([p[a] for p in per[c] if p.get(a) is not None]) for c in cols]} for a in CHART_ATTRS]}
+
+
 def divisions(rows):
     """Divisions with a league-wide search among these players: a few stray players from other searches don't make one."""
     counts = {}
@@ -242,7 +277,7 @@ def charts(rows, squad, w, cfg):
                     "rating": r["rating"], "minutes": r["minutes"], "best": r["best"], "win": r["win"], "pts": r.get("pts"),
                     "scores": {p: r[p] for p in ["GK", *w["outfield"]] if r.get(p) is not None},
                     **{a: attrs.get(a) for a in CHART_ATTRS}})
-    return {"positions": [*w["outfield"], "GK"], "players": out,
+    return {"positions": [*w["outfield"], "GK"], "players": mark_core(out),
             "managed": cfg["managed_club"], "division": cfg.get("division")}
 
 
@@ -314,7 +349,7 @@ def world_charts(save_dir, w, managed):
                     "win": None if keeper else win_score(a, w), "pts": pts_score(a, w) if keeper else None, "scores": scores,
                     **{c: a.get(c) for c in CHART_ATTRS}})
     mine = [p["division"] for p in out if p["squad"]]
-    return {"positions": [*w["outfield"], "GK"], "players": out, "managed": managed,
+    return {"positions": [*w["outfield"], "GK"], "players": mark_core(out), "managed": managed,
             "division": max(set(mine), key=mine.count) if mine else None}
 
 
@@ -511,6 +546,7 @@ def build(save):
                   if not f[11:].startswith("search-") and p["dates"][f[:10]]["club"] == managed]
     club_staff = [r for r in staff_rows if r["club"] == managed and r["history"][-1]["date"] >= max(club_dates, default="")]
 
+    chart = world_charts(save_dir, w, managed) or charts(rows, signed_up, w, cfg)  # from the save, else searches
     return cfg, {
         "squad": (player_cols(w, False), signed_up),
         # every player in the save (world/, from `import`), else every other player observed
@@ -523,9 +559,9 @@ def build(save):
         # the batch's files, plus anyone named in last_staff_names
         "last_staff": (staff_cols(roles), *batched(staff_rows, recent_batches(save, cfg, "last_staff_batch", "last_staff_names"),
                                                    lambda r, files, names: bool(staff[r["name"]]["files"] & files) or r["name"] in names)),
-        "charts": ([], world_charts(save_dir, w, managed) or charts(rows, signed_up, w, cfg)),  # from the save, else searches
-        # players' search minimums per position, then staff's per role
-        "filters": ([], [{"section": "Players"}, *filters(signed_up, w),
+        "charts": ([], chart),
+        # the divisions' medians of the charts page's attributes, then players' search minimums per position, then staff's per role
+        "filters": ([], [*filter(None, [division_medians(chart)]), {"section": "Players"}, *filters(signed_up, w),
                          {"section": "Staff"}, *staff_filters(club_staff, roles, w.get("staff_words", {}), w.get("staff_names", {}))]),
     }
 

@@ -15,7 +15,7 @@ transcribes them to CSV. The managed club's own squad and staff can instead be r
 6. **charts**: one division at a time (from the save, or league searches): role scores by position, and an attribute
    (a toggle: Acceleration, Pace, Stamina, Strength, Jumping Reach, Anticipation, Concentration) by position, with the squad overlaid;
    then %win vs minutes and vs rating, and %win by club
-7. **filters**: per position, the squad's best players and suggested minimums for FM's player search; then per staff role,
+7. **filters**: the %win filter (each division's median of the charts page's attributes, its clubs' top 18 outfield, and the squad's); then per position, the squad's best players and suggested minimums for FM's player search; then per staff role,
    the club's best staff and suggested minimums (as FM's words) for FM's staff search
 
 Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on Windows it may be `python` or `py`).
@@ -187,7 +187,8 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
   Dropdowns pick the division (the baseline, blue) and a club to highlight (orange): the managed club's squad
   screen, or any club in that division. Defaults: save.toml's `division` and `managed_club`.
   The two by-position strips take each club's first team only: its top 18 outfield players by %win and top 3 keepers by GKpts
-  (`CORE`, `CORE_GK` in charts.html); the scatters and %win-by-club tables still take every player.
+  (`CORE`, `CORE_GK`: `mark_core` in score.py); the scatters and %win-by-club tables still take every player. The attribute
+  strip shows each position's median beside its label; %win vs average rating runs 5.8–7.6 in 0.2 steps (players outside it left out).
   r = correlation over the league players; the dashed line is their least-squares fit.
   The %win scatters take every outfield player. **%win by club**: each club's players in
   the division's search, their mean and median %win, **best 10** (the mean of the club's top 10; sorted on it) and the %win of the club's top 12, best on
@@ -197,7 +198,8 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
 - **Youth intake:** players in the newest obs files whose source contains `intake` (e.g. `search-youth-intake`) are
   candidates, not the squad: they show only on last until a squad screen shows them (then they're squad, or gone) or
   they're in `intake_kept` (the user's "keep X").
-- **Filters page:** the squad's top 3 per position (top 1 for GK). **Search ≥** = their rounded average
+- **Filters page:** first the %win filter: each division's median of the charts page's 7 attributes over the same
+  first-team players as the charts' strips, then the managed club's (`division_medians`). Then the squad's top 3 per position (top 1 for GK). **Search ≥** = their rounded average
   for attributes weighted ≥ 2 (`SEARCH_MIN_WEIGHT`), for use as minimums in FM's search.
 - **Staff filters page:** the same per staff role: the top 3 of the managed club's staff (at the club in its latest staff
   screen) by role score. Values and **Search ≥** show as the `[staff_words]` word nearest the value.

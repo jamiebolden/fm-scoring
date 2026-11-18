@@ -459,7 +459,7 @@ function renderFilters() {
   input.style.visibility = "hidden";
   const main = document.getElementById("main");
   main.className = "tiles";
-  main.innerHTML = DATA.map(f => f.section ? `<div class="section">${f.section}</div>` : `<div class="tile">
+  main.innerHTML = DATA.map(f => f.section ? `<div class="section">${f.section}</div>` : f.medians ? medianTile(f) : `<div class="tile">
     <div class="ttitle">${f.pos}${f.title ? ` <span class="sub">· ${f.title}</span>` : ""}</div>
     <table>
       <thead><tr><th>Attribute</th><th class="num wt">Wt</th>${f.players.map(p =>
@@ -467,6 +467,14 @@ function renderFilters() {
       <tbody>${f.rows.map(r => `<tr class="${r.min == null ? "minor" : ""}"><td>${r.attr}</td><td class="num wt">×${r.weight}</td>${r.values.map((v, i) =>
         `<td class="num ${tier(v, RANGE.attr)}">${r.labels ? r.labels[i] : v}</td>`).join("")}<td class="num search">${r.min == null ? "–" : r.min}</td></tr>`).join("")}</tbody>
     </table></div>`).join("");
+}
+// The filters page's first tile: each division's median of the charts page's attributes (division_medians() in score.py)
+function medianTile(f) {
+  return `<div class="tile"><div class="ttitle">${f.pos} <span class="sub">· ${f.title}</span></div><table>
+    <thead><tr><th>Attribute</th>${f.cols.map(c => `<th class="num${c.squad ? " search" : ""}">${esc(c.name)}<br><span class="sub">n=${c.n}</span></th>`).join("")}</tr></thead>
+    <tbody>${f.rows.map(r => `<tr><td>${r.attr}</td>${r.values.map((v, i) =>
+      `<td class="num ${v == null ? "" : tier(v, RANGE.attr)}${f.cols[i].squad ? " search" : ""}">${v ?? "–"}</td>`).join("")}</tr>`).join("")}</tbody>
+  </table></div>`;
 }
 // The player under the cursor
 function curPlayer() { return view[cur.r]; }

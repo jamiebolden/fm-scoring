@@ -91,16 +91,6 @@ if (!DIVISIONS.includes(state.division)) state.division = DIVISIONS[0];
 const inLeague = p => !p.squad && p.division === state.division;
 const isHl = p => state.club === MANAGED ? p.squad : inLeague(p) && p.club === state.club;
 const clubs = () => [MANAGED, ...[...new Set(DATA.filter(inLeague).map(p => p.club))].filter(c => c !== MANAGED).sort()];
-// The role and attribute strips take each club's first team, not its whole squad (youth included): its top CORE
-// outfield players by %win and top CORE_GK keepers by GKpts. The scatters and club tables still take everyone.
-const CORE = 18, CORE_GK = 3;
-{
-  const byClub = {};
-  for (const p of DATA) (byClub[p.squad ? "\0squad" : p.club] ||= []).push(p);
-  for (const ps of Object.values(byClub))
-    for (const [v, n] of [[p => p.win, CORE], [p => p.pts, CORE_GK]])
-      ps.filter(p => v(p) != null).sort((a, b) => v(b) - v(a)).slice(0, n).forEach(p => p.core = true);
-}
 let VIEW = [];
 // Axes span every division (and the highlighted club), so switching division doesn't move them
 const AXIS_POOL = (keep = () => true) => DATA.filter(p => ((!p.squad && DIVISIONS.includes(p.division)) || p.hl) && keep(p));
@@ -123,7 +113,8 @@ function niceTicks(lo, hi, n = 5) {
 function extent(vs, pad) { const lo = Math.min(...vs), hi = Math.max(...vs), d = (hi - lo) * pad || 1; return [lo - d, hi + d]; }
 function linear([d0, d1], [r0, r1], step) {
   const f = v => r0 + (v - d0) / (d1 - d0) * (r1 - r0); f.domain = [d0, d1]; f.fmt = v => +v.toFixed(2);
-  f.ticks = () => step ? Array.from({ length: Math.floor(d1 / step) - Math.ceil(d0 / step) + 1 }, (_, i) => (Math.ceil(d0 / step) + i) * step) : niceTicks(d0, d1);
+  const a = Math.ceil(d0 / step - 1e-9), b = Math.floor(d1 / step + 1e-9);  // 7.6 / 0.2 = 37.999…
+  f.ticks = () => step ? Array.from({ length: b - a + 1 }, (_, i) => +((a + i) * step).toFixed(6)) : niceTicks(d0, d1);
   return f;
 }
 
@@ -161,9 +152,9 @@ function axis(svg, scale, horizontal, at, span, label) {
   }
 }
 
-// One row of dots per position, each club's core players only (CORE); tick = league median (labelled with its value when showMedian)
-// min: where the axis starts; values below it sit on the axis's left edge
-function strip(id, value, label, groupFor, step, showMedian, min) {
+// One row of dots per position, each club's first team only (p.core: mark_core in score.py); tick = league median (labelled with its value when showMedian)
+// min: where the axis starts; values below it sit on the axis's left edge. medianByLabel: the median beside the row's label
+function strip(id, value, label, groupFor, step, showMedian, min, medianByLabel) {
   const box = document.getElementById(id); box.innerHTML = "";
   const W = box.clientWidth, rowH = 46, L = 64, R = 46, H = POSITIONS.length * rowH + 30;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H }, box);
@@ -175,7 +166,8 @@ function strip(id, value, label, groupFor, step, showMedian, min) {
   const labels = [];
   rows.forEach(({ pos, ps }, i) => {
     const cy = i * rowH + rowH / 2, league = ps.filter(inLeague);
-    el("text", { x: 0, y: cy + 4, class: "row-label" }, svg).textContent = pos;
+    const t = el("text", { x: 0, y: cy + 4, class: "row-label" }, svg); t.textContent = pos;
+    if (medianByLabel && league.length) el("tspan", { dx: 6, class: "median-label" }, t).textContent = +median(league.map(p => value(p, pos))).toFixed(1);
     el("text", { x: W, y: cy + 4, "text-anchor": "end", class: "row-n" }, svg).textContent = `n=${league.length}`;
     for (const p of [...ps.filter(p => !p.hl), ...ps.filter(p => p.hl)]) dot(svg, p, x(value(p, pos)), cy + jitter(p.name + pos) * (rowH - 14));
     if (league.length) {
@@ -198,10 +190,11 @@ function fit(pts) {
   return sxx && syy ? { slope: sxy / sxx, icpt: my - sxy / sxx * mx, r: sxy / Math.sqrt(sxx * syy) } : null;
 }
 // spec.into: the container's id; spec.x / spec.y return null for players the chart leaves out
+// spec.xDomain / spec.xStep: a fixed x axis and tick step; players outside it are left out
 function scatter(spec) {
   const tile = document.createElement("div"); tile.className = "tile";
   document.getElementById(spec.into || "wins").appendChild(tile);
-  const has = p => spec.x(p) != null && spec.y(p) != null;
+  const has = p => spec.x(p) != null && spec.y(p) != null && (!spec.xDomain || (spec.x(p) >= spec.xDomain[0] && spec.x(p) <= spec.xDomain[1]));
   const ps = VIEW.filter(has);
   const league = ps.filter(inLeague), rest = ps.filter(p => !p.hl), hl = ps.filter(p => p.hl);
   const f = fit(league.map(p => [spec.x(p), spec.y(p)]));
@@ -213,7 +206,7 @@ function scatter(spec) {
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H }, box);
   const pool = AXIS_POOL().filter(has);
   const xs = pool.map(spec.x), ys = pool.map(spec.y);
-  const x = linear(extent(xs, 0.05), [L, W - R]);
+  const x = linear(spec.xDomain || extent(xs, 0.05), [L, W - R], spec.xStep);
   const y = linear(extent(ys, 0.06), [H - B, T]);
   axis(svg, x, true, H - B, H - B - T, spec.xl); axis(svg, y, false, L, W - L - R, spec.yl);
   if (f) {
@@ -317,14 +310,14 @@ function render() {
   const sp = SPEEDS[state.speed];
   document.getElementById("t-strip-speed").textContent = `${sp} attribute by position`;
   strip("strip-score", (p, pos) => p.scores[pos], "role score", inGroup, undefined, true, 9);
-  strip("strip-speed", p => speed(p), sp, (p, pos) => p.best === pos, 2);
+  strip("strip-speed", p => speed(p), sp, (p, pos) => p.best === pos, 2, false, undefined, true);
   const rating = p => p.rating;
   // Minutes and ratings are per season: in the off-season (a search with none) those charts are left out
   const rated = VIEW.some(p => p.rating != null);
   document.getElementById("wins").innerHTML = "";
   const win = p => p.win, mins = p => p.minutes;
   if (rated) scatter({ title: "%win vs minutes (all outfield players)", x: mins, y: win, xl: "minutes", yl: "%win", into: "wins" });
-  if (rated) scatter({ title: "%win vs average rating (all outfield players)", x: rating, y: win, xl: "average rating", yl: "%win", into: "wins" });
+  if (rated) scatter({ title: "%win vs average rating (all outfield players)", x: rating, y: win, xl: "average rating", yl: "%win", into: "wins", xDomain: [5.8, 7.6], xStep: 0.2 });
   clubTable("clubs");
   const age = state.youth === "all" ? (p => p.age >= 15 && p.age <= 17) : (p => p.age === +state.youth);
   clubTable("youth", age, `%win by club: ${YOUTH[state.youth]}-year-olds`,
