@@ -6,6 +6,8 @@
     python3 score.py init             first-time setup: config.toml and a save
     python3 score.py screenshots      list the newest screenshots in config.toml's screenshots_dir
     python3 score.py share-leagues    copy the save's latest league searches to leagues/ (public), names anonymised
+    python3 score.py import           read the managed club's players and staff from the save file (save.toml's save_file)
+                                      with fmsave, instead of screenshots; then score
 
 Reads saves/<save>/obs/<YYYY-MM-DD>_<source>_<view>.csv (players) and saves/<save>/staff/<YYYY-MM-DD>_<source>.csv,
 scores them with weights/<save.toml's weights>.toml, and writes one page per entry in PAGES.
@@ -498,6 +500,7 @@ def init():
         club = ask("Club you manage (needed)")
     save = ask("Name for this save (a folder name)", re.sub(r"[^a-z0-9]+", "-", club.lower()).strip("-"))
     division = ask("Your club's division, exactly as FM shows it (optional)")
+    save_file = ask("Your FM save file (.fm), to read the squad from it instead of screenshots (optional)")
     weight = ask(f"Weights to score with ({', '.join(weights)})", weights[-1] if weights else "")
 
     save_toml = ROOT / "saves" / save / "save.toml"
@@ -509,6 +512,7 @@ def init():
         save_toml.write_text(f"# A save managing {club}: see config.example.toml and README.md for each setting.\n"
                              f"weights = {toml_str(weight)}\nmanaged_club = {toml_str(club)}\n"
                              f"short_name = {toml_str(save)}\ndivision = {toml_str(division)}\n"
+                             + (f"save_file = {toml_str(save_file)}\n" if save_file else "") +
                              "last_batch = []\nlast_staff_batch = []\n", encoding="utf-8")
         print(f"\nWrote saves/{save}/save.toml")
     CONFIG.write_text("# Settings for this computer: config.example.toml explains each one.\n"
@@ -554,6 +558,150 @@ def share_leagues(save):
             print(f"{out.relative_to(ROOT)}: {len(rows)} players")
 
 
+# --- reading the save file: fmsave (github.com/rhiever/fmsave, Python 3.12+) runs as its own program, so this stays stdlib ---
+
+FMSAVE = ["uvx", "--python", "3.12", "--from", "fmsave>=0.12.6", "fmsave"]  # uv fetches fmsave and Python 3.12 itself
+HIDDEN_ATTRS = {"consistency", "dirtiness", "important_matches", "injury_proneness", "versatility"}  # FM never shows these
+GK_ONLY = {"aerial_reach", "command_of_area", "communication", "eccentricity", "handling", "kicking", "one_on_ones", "punching",
+           "reflexes", "rushing_out", "throwing"}  # left out of the outfield file
+OUTFIELD_ONLY = {"corners", "crossing", "dribbling", "finishing", "free_kick_taking", "heading", "long_shots", "long_throws",
+                 "marking", "penalty_taking", "tackling", "technique"}  # left out of the gk file: FM's keeper profile doesn't show them
+FOOT_WORDS = [(20, "Very Strong"), (15, "Strong"), (12, "Fairly Strong"), (9, "Reasonable"), (5, "Weak"), (1, "Very Weak")]  # foot 1–20: lowest of each
+STAFF_SCALE_20 = {"adaptability", "authority", "working_with_youngsters"}  # fmsave gives the other staff attributes on 1–100
+BOARD_JOBS = {"chairperson", "director"}  # the board: not in FM's staff screens
+
+
+def fm_name(key):
+    """fmsave's key -> FM's name: off_the_ball -> Off The Ball, one_on_ones -> One on Ones, command_of_area -> Command of Area."""
+    return " ".join(w if w in ("of", "on") else w.capitalize() for w in key.split("_"))
+
+
+def fm_money(value, currency, suffix=""):
+    """A number -> as FM shows it: 2500000 -> £2.5M, 1147 -> £1.1K, 934 -> £934."""
+    for unit, size in (("M", 1e6), ("K", 1e3)):
+        if value >= size:
+            x = value / size
+            text = f"{x:.2f}" if x < 10 else f"{x:.1f}" if x < 100 else f"{x:.0f}"
+            return f"{currency}{text.rstrip('0').rstrip('.') if '.' in text else text}{unit}{suffix}"
+    return f"{currency}{value:.0f}{suffix}"
+
+
+def staff_word(key, value, words):
+    """A staff attribute as FM's word: 1–100 -> 1–20 as FM rounds it (up), then the [staff_words] word nearest it."""
+    v = value if key in STAFF_SCALE_20 else -(-value // 5)
+    return min(words, key=lambda w: abs(words[w] - v))
+
+
+def set_toml_key(text, key, value):
+    """Set `key = value` (value already TOML) in save.toml's text if the key is there, keeping everything else as it is."""
+    return re.sub(rf"^{re.escape(key)}\s*=\s*(\[[^\]]*\]|.*)$", lambda m: f"{key} = {value}", text, count=1, flags=re.M)
+
+
+def import_save(save, config, save_file=None):
+    """Read the managed club's players and staff from the FM save file with fmsave, and write them as a squad screen and
+    a staff screen would: obs/<date>_<club>-save_{outfield,gk}.csv and staff/<date>_<club>-save.csv, dated the game date.
+    Only the managed club: the save holds everyone's true attributes, and FM shows other clubs' only as scouted."""
+    import shlex
+    import shutil
+    import tempfile
+    save_dir = ROOT / "saves" / save
+    cfg = load_toml(save_dir / "save.toml")
+    path = Path(save_file or cfg.get("save_file") or "").expanduser()
+    if not (save_file or cfg.get("save_file")):
+        raise SystemExit(f'saves/{save}/save.toml has no save_file: add save_file = "<path to the .fm file>", or pass --file')
+    if not path.is_file():
+        raise SystemExit(f"Save file not found: {path}")
+    cmd = shlex.split(config["fmsave"]) if config.get("fmsave") else ["fmsave"] if shutil.which("fmsave") else FMSAVE
+    if cmd == FMSAVE and not shutil.which("uvx"):
+        raise SystemExit("Reading the save needs uv (https://docs.astral.sh/uv/), or fmsave installed with Python 3.12+ "
+                         '(`pip install fmsave`), or fmsave = "<command>" in config.toml')
+    managed, currency, rate = cfg["managed_club"], config.get("currency", "£"), float(config.get("money_rate", 1))
+    words = load_toml(ROOT / "weights" / f"{cfg['weights']}.toml").get("staff_words", {})
+
+    def fmsave(*args):
+        r = subprocess.run([*cmd, *args], capture_output=True, text=True, encoding="utf-8")
+        if r.returncode:
+            raise SystemExit(f"fmsave {args[0]} failed:\n{r.stderr.strip()[-2000:]}")
+        return r.stdout
+
+    with tempfile.TemporaryDirectory() as tmp:
+        copy = Path(tmp) / "save.fm"  # FM may be writing the real one
+        shutil.copyfile(path, copy)
+        info = json.loads(fmsave("info", str(copy), "--json"))
+
+        def table(name):
+            fmsave("export", str(copy), name, "--all" if name == "managed-clubs" else "--managed-club", "-o", str(Path(tmp) / f"{name}.csv"))
+            with open(Path(tmp) / f"{name}.csv", newline="", encoding="utf-8") as f:
+                return list(csv.DictReader(f))
+
+        clubs = table("managed-clubs")
+        club = next((c for c in clubs if managed in (c["club_short_name"], c["club_name"])), None)
+        if not club:
+            raise SystemExit(f"{path.name} manages {', '.join(c['club_short_name'] for c in clubs) or 'no club'}, "
+                             f"but save.toml's managed_club is {managed}: another save?")
+        players, stats, staff = table("players"), table("player-season-stats"), table("staff")
+
+    date = info["game_date"]
+    latest = max((p.name[:10] for d in ("obs", "staff") for p in (save_dir / d).glob("*.csv")), default="")
+    if date < latest:
+        raise SystemExit(f"{path.name} is at {date}, before this save's latest observation ({latest}): another save, or an old one?")
+    if not info.get("known_build"):
+        print(f"fmsave reads FM build {info.get('build')} with its nearest known layout: worth checking a few values against FM")
+
+    # this season's minutes and average rating, all competitive matches ("overall"), summed over the club's teams
+    season = {}
+    for r in stats:
+        if r["kind"] == "overall":
+            s = season.setdefault(r["player_uid"], [0, 0, 0.0])
+            n = int(r["rated_appearances"] or 0)
+            s[0] += int(r["minutes"] or 0)
+            s[1] += n
+            s[2] += float(r["average_rating"]) * n if n and r["average_rating"] else 0
+    slug = re.sub(r"[^a-z0-9]+", "-", managed.lower()).strip("-") + "-save"
+    attrs = sorted(k[11:] for k in (players[0] if players else {}) if k.startswith("attributes_") and k[11:] not in HIDDEN_ATTRS)
+    written = []
+    for view, skip in (("outfield", GK_ONLY), ("gk", OUTFIELD_ONLY)):
+        keys = [k for k in attrs if k not in skip]
+        rows = []
+        for p in sorted(players, key=lambda p: p["name"]):
+            if ("GK" in p["natural_positions"].split(";")) != (view == "gk"):
+                continue
+            minutes, rated, total = season.get(p["uid"], (0, 0, 0))
+            loan = ("out" if p["loan_parent_club_uid"] == club["club_uid"] else "in") if p["on_loan"] == "true" else ""
+            foot = next((word for low, word in FOOT_WORDS if p["left_foot"] and int(p["left_foot"]) >= low), "")
+            rows.append([p["name"], managed, p["age"], foot,
+                         fm_money(float(p["contract_wage"]) * rate, currency, " p/w") if float(p["contract_wage"] or 0) else "N/A",  # no contract yet
+                         fm_money(float(p["transfer_value"]) * rate, currency) if p["transfer_value_state"] == "ok" and p["transfer_value"] else "",
+                         loan, minutes, f"{total / rated:.2f}" if rated else "", *(p[f"attributes_{k}"] for k in keys)])
+        if rows:
+            out = save_dir / "obs" / f"{date}_{slug}_{view}.csv"
+            with open(out, "w", newline="", encoding="utf-8") as f:
+                wr = csv.writer(f, lineterminator="\n")
+                wr.writerow(["Name", "Club", "Age", "Left Foot", "Wage", "Transfer Value", "Loan", "Minutes", "Rating", *map(fm_name, keys)])
+                wr.writerows(rows)
+            written.append(f"obs/{out.name} ({len(rows)})")
+
+    staff_keys = sorted(k[11:] for k in (staff[0] if staff else {}) if k.startswith("attributes_"))
+    rows = [[s["name"], managed, s["age"], "" if s["job"] in ("", "unknown") else fm_name(s["job"]), "",
+             *(staff_word(k, int(s[f"attributes_{k}"]), words) if s[f"attributes_{k}"] else "" for k in staff_keys)]
+            for s in sorted(staff, key=lambda s: s["name"])
+            if s["is_human_manager"] != "true" and s["job"] not in BOARD_JOBS and any(s[f"attributes_{k}"] for k in staff_keys)]
+    if rows:
+        out = save_dir / "staff" / f"{date}_{slug}.csv"
+        with open(out, "w", newline="", encoding="utf-8") as f:
+            wr = csv.writer(f, lineterminator="\n")
+            wr.writerow(["Name", "Club", "Age", "Job", "Personality", *map(fm_name, staff_keys)])
+            wr.writerows(rows)
+        written.append(f"staff/{out.name} ({len(rows)})")
+
+    # a new squad screen and staff screen: whoever's gone, joined or come back since the last one is now in the files
+    text = (save_dir / "save.toml").read_text(encoding="utf-8")
+    for key in ("released", "signed", "recalled", "staff_released"):
+        text = set_toml_key(text, key, "[]")
+    (save_dir / "save.toml").write_text(text, encoding="utf-8")
+    print(f"[{save}] {date}, from {path.name}: " + ", ".join(written))
+
+
 def screenshots(minutes):
     """The newest images in screenshots_dir, newest first, so an agent can find the ones just taken on any OS."""
     folder = Path(load_config().get("screenshots_dir", default_screenshots_dir())).expanduser()
@@ -580,6 +728,8 @@ def main():
     sp = sub.add_parser("screenshots", help="list the newest screenshots in screenshots_dir")
     sp.add_argument("--minutes", type=float, default=10, help="how far back to look (default 10)")
     sub.add_parser("share-leagues", help="copy the save's latest league searches to leagues/, names anonymised")
+    ip = sub.add_parser("import", help="read the managed club's players and staff from the save file with fmsave, then score")
+    ip.add_argument("--file", help="the .fm save file, if not save.toml's save_file")
     args = ap.parse_args()
 
     if args.command == "init":
@@ -590,6 +740,8 @@ def main():
     save = args.save or config["active_save"]
     if args.command == "share-leagues":
         return share_leagues(save)
+    if args.command == "import":
+        import_save(save, config, args.file)
     cfg, pages = build(save)
     out = write_pages(save, config, cfg, pages)
     if args.open:

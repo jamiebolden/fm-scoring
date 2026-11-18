@@ -2,7 +2,7 @@
 
 Scores Football Manager players on weighted attributes and tracks them over game time.
 FM has no data export, so the user takes screenshots of in-game player tables and an agent
-transcribes them to CSV. `score.py` turns those into eight pages per save (keys 1–8):
+transcribes them to CSV. The managed club's own squad and staff can instead be read from the save file (`score.py import`). `score.py` turns those into eight pages per save (keys 1–8):
 
 1. **squad**: the club the user manages
 2. **elsewhere**: every other player they've looked at
@@ -22,8 +22,8 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 
 | Path | Purpose |
 |---|---|
-| `config.toml` | This computer's settings: `active_save` (the save being worked on; only ever touch that save), `screenshots_dir`, `currency`. Gitignored; `python3 score.py init` writes it, `config.example.toml` shows it. |
-| `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; page 5's default), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 7), `last_staff_names` (staff already observed to add to page 7), `intake_kept` (intake players kept: they join the squad), `released` (players gone since the latest squad screen) `signed` (players joined since) `recalled` (back from loan since), `staff_released` (staff let go since) and `aliases` (a name FM cut off in an obs file → the full name). |
+| `config.toml` | This computer's settings: `active_save` (the save being worked on; only ever touch that save), `screenshots_dir`, `currency`, optional `money_rate` and `fmsave` (for `import`). Gitignored; `python3 score.py init` writes it, `config.example.toml` shows it. |
+| `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; page 5's default), `save_file` (the `.fm` file `import` reads; optional), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 7), `last_staff_names` (staff already observed to add to page 7), `intake_kept` (intake players kept: they join the squad), `released` (players gone since the latest squad screen) `signed` (players joined since) `recalled` (back from loan since), `staff_released` (staff let go since) and `aliases` (a name FM cut off in an obs file → the full name). |
 | `saves/<save>/obs/*.csv` | Observations: `<YYYY-MM-DD>_<source>_<view>.csv`, one per screenshot set. Append-only. |
 | `saves/<save>/staff/*.csv` | Staff observations: `<YYYY-MM-DD>_<source>.csv` (`search-coach`). Append-only. |
 | `weights/<name>.toml` | Position weights (`[outfield.*]`, `[gk]`), the %win and GKpts tests (`[win]`, `[gk_pts]`), age benchmarks, and staff scoring: `[staff_words]` (FM's words → numbers) and `[staff.<role>]` (the role's column label, then attribute weights). |
@@ -31,7 +31,7 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 | `weights/fm27_positions.xlsx` | Working sheet for the position weights: fm27 (GK, CB, WB/6, 10, 9) beside fm27v2 (GK, FB, CB, 6, wing, 10, 9), with each %win attribute's value. fm27v2 needs Crossing in the views. |
 | `leagues/*.csv` | Shared league searches (public): `<date>_search-<division>_<view>.csv`, names anonymised (`Arsenal 3`), no `Loan`. `python3 score.py share-leagues` writes them from the active save's latest league search per division, replacing that division's older file. |
 | `views/`, `player search filters/`, `staff search filters/`, `schedules/` | FM27 views, search filters and training schedules (`.fmf`), named like FM's own folders. |
-| `score.py` | `python3 score.py [--save S] [--open PAGE]` → `out/<save>/*.html`. Also `init` (first-time setup) and `screenshots` (list new ones). Stdlib only. |
+| `score.py` | `python3 score.py [--save S] [--open PAGE]` → `out/<save>/*.html`. Also `init` (first-time setup), `screenshots` (list new ones) and `import` (read the save file). Stdlib only. |
 | `template.html` | Every page but charts. Its `?` overlay is the reference for keys and filter syntax. |
 | `charts.html` | Page 5: hand-drawn SVG charts. |
 | `theme.css` | Omarchy / Tokyo Night theme, inlined into every page. |
@@ -81,6 +81,26 @@ The user says something like "new screenshots".
 6. Run `python3 score.py --open last` and commit the save data: `git -C saves add -A && git -C saves commit -m "<save>: <what> <date>"`.
 7. Report notable players: top of the new batch, big changes since a player's previous observation.
 
+## Reading the save file
+
+The user says something like "update from my save" (they've just saved in FM): run `python3 score.py --open squad import`.
+It reads save.toml's `save_file` (or `--file`) with [fmsave](https://github.com/rhiever/fmsave), run as its own program
+(`uvx`, which fetches fmsave and Python 3.12; or config.toml's `fmsave` command), so `score.py` stays stdlib-only.
+
+- It writes the managed club's players as a squad screen would, `obs/<date>_<club>-save_{outfield,gk}.csv`, with every
+  visible attribute, full names, this season's minutes and average rating (all competitive matches), and its staff as
+  `staff/<date>_<club>-save.csv` (FM's words; no Personality). Dated the game date. It empties `released`, `signed`,
+  `recalled` and `staff_released`, and leaves `last_batch` alone (that's for screenshots). Re-importing the same game date
+  rewrites its own files only.
+- Only the managed club: the save holds every player's true attributes, but FM shows other clubs' players only as
+  scouted, so they stay screenshots.
+- It stops if the save manages another club or is dated before the save's latest observation.
+- Checked on FM 27.1.0 (fmsave 0.12.6): all 44 players' attributes, feet and names matched a same-day squad screen.
+  Wages are FM's exact numbers (FM rounds some, £934 shows as £925); transfer value is one number, not FM's range.
+  Staff 1–100 values become FM's words as ⌈x/5⌉, then the nearest `[staff_words]` word.
+- fmsave warns about FM builds it hasn't registered; after a game update, compare one squad screen with an import.
+- Commit as for screenshots: `git -C saves add -A && git -C saves commit -m "<save>: import <date>"`.
+
 ## Adding staff screenshots
 
 The user's in-game staff view (`staff_everything`) shows Person, Preferred Job, Club, Personality, then FM's abbreviated
@@ -90,8 +110,8 @@ attributes. Same steps as players (date, crest check, `score.py screenshots`), b
   (Preferred Job, expanded: `Fitness …` → `Fitness Coach`), `Personality` (expanded: `Fairly Dete…` → `Fairly Determined`),
   then attributes by full name with FM's word in full (`Compe…` → `Competent`, `Very G…` → `Very Good`). Copy the header from an existing file.
 - Column map: Det Determination · Mot Motivating · **JCA Judging Player Ability** · Mgm People Management · Auth Authority ·
-  TCo Tactical Knowledge · **JPA Judging Player Potential** · Tec Technical · Yng Working With Youngsters · Pos Possession ·
-  Tct Tactical · Att Attacking · Def Defending · Phy Physiotherapy · Fit Fitness · SpS Sports Science · Ana D Analysing Data ·
+  TCo Tactical · **JPA Judging Player Potential** · Tec Technical · Yng Working With Youngsters · Pos Possession ·
+  Tct Tactical Knowledge · Att Attacking · Def Defending · Phy Physiotherapy · Fit Fitness · SpS Sports Science · Ana D Analysing Data ·
   Set Set Pieces · GK Goalkeeping. The text is small: crop the screenshot to read it, with whatever's installed: `sips -c H W --cropOffset Y X in --out crop.png`
   (macOS), `magick in -crop WxH+X+Y crop.png` (ImageMagick, any OS), or Pillow if it's there. Write crops to a temp folder, not the repo.
 - The user saying staff have gone ("released X", "removed all staff except Y"): add them to `staff_released = [...]` in save.toml

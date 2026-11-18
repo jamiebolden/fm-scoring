@@ -2,3 +2,6 @@
 active_save = "my-club"            # saves/<this>/save.toml
 screenshots_dir = "~/Desktop"      # where your screenshots are saved (Windows: "~/Pictures/Screenshots")
 currency = "£"                     # the money symbol FM shows
+# For `score.py import` (reading the save file), both optional:
+# money_rate = 1.17                # the save stores pounds: × this for the currency FM shows you (here €)
+# fmsave = "fmsave"                # how to run fmsave, if not uvx (https://docs.astral.sh/uv/) or fmsave on PATH

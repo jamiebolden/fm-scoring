@@ -8,6 +8,10 @@ FM can't export its data, so this works from screenshots. You take screenshots o
 AI assistant (Claude Code or Codex) reads them for you and updates your pages. You never need to type
 any data in yourself.
 
+For your own club there's a shortcut: the assistant can read your squad and staff straight from FM's save file, with
+[fmsave](https://github.com/rhiever/fmsave). Save in FM and say **"update from my save"**. Other clubs' players still
+come from screenshots, because the save holds their true attributes, not what your scouts know.
+
 Works on Mac, Windows and Linux.
 
 ---
@@ -169,7 +173,9 @@ Whenever you want to add players, screenshot them in FM and tell your assistant 
   That fills the charts page, so you can see how your squad compares. Until you do, the charts page uses the
   shared English leagues in `leagues/` (Premier League to the National Leagues, January 2030, names hidden).
 - **Staff searches:** coaches, scouts, physios and so on, with the staff view.
-- **Your squad again later:** re-screenshot it every few months of game time to see who's improving.
+- **Your squad again later:** re-screenshot it every few months of game time to see who's improving. Or, if you
+  gave your save file at setup, save in FM and say **"update from my save"**: no screenshots needed. That needs
+  [uv](https://docs.astral.sh/uv/) installed (it fetches the save reader by itself).
 
 The assistant tells you about notable players each time. It's worth checking a few numbers against FM
 now and then, because a misread number is the most likely mistake.

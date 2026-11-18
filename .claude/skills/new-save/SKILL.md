@@ -13,11 +13,14 @@ words, one step at a time, no jargon, and do the typing for them. `README.md` is
 2. **Ask, then write the settings yourself** (don't send them to `score.py init`: it's interactive):
    - the club they manage and its division, exactly as FM shows them in tables;
    - where their screenshots are saved (offer the OS default: Mac `~/Desktop`, Windows `~/Pictures/Screenshots`);
-   - the currency FM shows.
+   - the currency FM shows;
+   - optionally, their FM save file (`.fm`), so their own squad and staff can be read from it instead of screenshotted
+     (Mac `~/Library/Application Support/Sports Interactive/Football Manager 27/games`; Windows: the `games` folder in
+     the FM data folder of step 3). That needs uv (https://docs.astral.sh/uv/): check `uvx --version`.
 
    Write `config.toml` (from `config.example.toml`: `active_save`, `screenshots_dir`, `currency`) and
    `saves/<slug of club>/save.toml` (`weights` = the newest `weights/*.toml`, `managed_club`, `short_name`, `division`,
-   `last_batch = []`, `last_staff_batch = []`), and create its `obs/` and `staff/` folders. If `saves/` isn't a git repo
+   `save_file` if given, `last_batch = []`, `last_staff_batch = []`), and create its `obs/` and `staff/` folders. If `saves/` isn't a git repo
    yet, `git init saves` (it stays local: their data isn't pushed with the code).
    Check the screenshots folder exists.
 3. **FM views:** offer to install the views and filters. Ask them to quit FM first. Find FM's data folder: Mac
@@ -27,7 +30,8 @@ words, one step at a time, no jargon, and do the typing for them. `README.md` is
    names there, creating any that are missing. Never overwrite a file of the same name without asking. Then tell them the
    columns README's step 5 lists for the views that aren't included (whole league).
    The attributes come from the weights file, so if it's not `fm27`, list that file's instead (and the views may need editing).
-4. **First screenshots:** their squad screen with the outfield view, scrolling to cover everyone, then the GK view, with FM's
+4. **First squad:** with a save file, have them save in FM, run `python3 score.py --open squad import` and skip to 5.
+   Otherwise, **first screenshots:** their squad screen with the outfield view, scrolling to cover everyone, then the GK view, with FM's
    date and their crest in shot. When they say "new screenshots", follow "Adding screenshots" in AGENTS.md.
 5. Commit the new save: `git -C saves add -A && git -C saves commit -m "<save>: new save"`.
 
