@@ -14,8 +14,10 @@ scores them with weights/<save.toml's weights>.toml, and writes one page per ent
 """
 import argparse
 import csv
+import functools
 import html
 import json
+import math
 import platform
 import re
 import subprocess
@@ -290,17 +292,50 @@ def world_files(save_dir):
     return sorted((save_dir / "world").glob("*.csv.gz"))
 
 
+@functools.cache  # the players page, the charts page and the squad's positions each read the latest one
 def read_world(path):
     """(attribute names, rows as dicts) from one world/<date>.csv.gz."""
     import gzip
     with gzip.open(path, "rt", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        return reader.fieldnames[len(WORLD_META):], list(reader)
+        return [k for k in reader.fieldnames if k not in WORLD_META], list(reader)
 
 
 def attr_string(row, attrs):
     """A player's attributes as one letter each (1–20 -> A–T, unknown -> -): the page decodes them and scores in the browser."""
     return "".join(chr(64 + int(row[a])) if row[a] else "-" for a in attrs)
+
+
+# Persuadable: would a player consider a transfer to the managed club (FM's "Player's interest: Transfer only, Persuadable")?
+# Fitted 2030-03-14 in a League One save (club reputation 4,789) on the 817 players at English and Scottish clubs earning
+# ≥ £3.45K p/w under the cap, 131 of them persuadable; ambition, loyalty, contract length and age added nothing. Out of
+# sample, its expected count over the whole save was 8,624 against FM's 7,697. Refit it as more such searches come in.
+PERSUADE_CAP = 1.2  # no one with a current reputation above this × the managed club's was persuadable (0 of 959)
+PERSUADE_MODEL = {"const": -0.87, "club_rep": -1.13, "rep": -3.02, "club_below": 2.20}  # reputations: per 1,000 above the managed club's
+PERSUADE_STATUS = {"surplus": 3.01, "fringe": 1.59, "squad": 0.41, "key": 0, "star": -1.98, "young": -1.82}
+PERSUADE_LOAN = -1.80  # out on loan
+STATUS_GROUP = {"surplus_to_requirements": "surplus", "squad_player": "squad", "star_player": "star",
+                **dict.fromkeys(["fringe_player", "impact_sub", "backup", "emergency_backup", "goalkeeper_emergency_backup",
+                                 "cup_goalkeeper", "domestic_cup_goalkeeper"], "fringe"),
+                **dict.fromkeys(["breakthrough_prospect", "future_prospect", "youngster", "b_team_regular"], "young")}  # else key
+
+
+def persuadable(r, my_rep):
+    """The chance (0–1) a player at another club would consider a transfer to a club of reputation my_rep; 0 above the
+    cap or at a club outside England and Scotland. None for free agents, or where their club's reputation isn't known."""
+    if not r["club"] or not my_rep:
+        return None
+    rep = int(r["rep"] or 0)
+    if rep > PERSUADE_CAP * my_rep or r["div"][:3] not in ("ENG", "SCO"):
+        return 0.0
+    if not r.get("club_rep"):
+        return None
+    club_rep = int(r["club_rep"])
+    m = PERSUADE_MODEL
+    x = (m["const"] + m["club_rep"] * (club_rep - my_rep) / 1000 + m["rep"] * (rep - my_rep) / 1000
+         + (m["club_below"] if club_rep < my_rep - 100 else 0)
+         + PERSUADE_STATUS[STATUS_GROUP.get(r.get("status"), "key")] + (PERSUADE_LOAN if r.get("loan") else 0))
+    return 1 / (1 + math.exp(-x))
 
 
 def world_page(save_dir, w, managed):
@@ -311,18 +346,31 @@ def world_page(save_dir, w, managed):
         return None
     attrs, rows = read_world(files[-1])
     clubs, divs = {}, {}
+    mine = [r for r in rows if r["club"] == managed]
+    my_rep = next((int(r["club_rep"]) for r in mine if r.get("club_rep")), None)
+    pers = lambda r: None if (p := persuadable(r, my_rep)) is None else round(p * 100)
     out = [[int(r["uid"]), r["name"], clubs.setdefault(r["club"], len(clubs)), divs.setdefault(r["div"], len(divs)), r["nat"],
             int(r["age"]) if r["age"] else None, int(r["foot"]) if r["foot"] else None, int(r["wage"]) if r["wage"] else None,
             int(r["value"]) if r["value"] else None, int(r["rep"]) if r["rep"] else 0, 1 if r["keeper"] else 0,
-            int(r["minutes"]) if r["minutes"] else None, float(r["rating"]) if r["rating"] else None, attr_string(r, attrs)] for r in rows]
-    mine = [r for r in rows if r["club"] == managed]
+            int(r["minutes"]) if r["minutes"] else None, float(r["rating"]) if r["rating"] else None, attr_string(r, attrs), pers(r),
+            r.get("positions") or None, (r.get("loan_from") or 1) if r.get("loan") else None]  # on loan: from this club (1: not known)
+           for r in rows if r["club"] != managed]  # your own players: the squad page
     my_div = max({r["div"] for r in mine}, key=[r["div"] for r in mine].count) if mine else ""
     data = {"world": True, "date": files[-1].name[:10], "attrs": attrs, "clubs": list(clubs), "divs": list(divs), "rows": out,
-            "cap": max((int(r["rep"]) for r in mine if r["rep"]), default=None), "myDiv": my_div, "managed": managed,
+            "cap": PERSUADE_CAP * my_rep if my_rep else None, "myDiv": my_div, "managed": managed,
             "shards": WORLD_SHARDS, "scoring": {"win": w.get("win", {}), "gk_pts": w.get("gk_pts", {}), "age": w["age_benchmark"]}}
     cols = player_cols(w, True)
     cols.insert(2, {"key": "div", "label": "Div"})
     return cols, data
+
+
+def world_positions(save_dir, managed):
+    """{(name, club): FM's position ratings, one letter each} from the latest world file, for players from obs files (the
+    squad, last): matched on name and club, as the obs files show them (the managed club as save.toml names it)."""
+    files = world_files(save_dir)
+    if not files:
+        return {}
+    return {(r["name"], r["club"]): r["positions"] for r in read_world(files[-1])[1] if r.get("positions")}
 
 
 def world_charts(save_dir, w, managed):
@@ -493,6 +541,9 @@ def build(save):
 
     players, obs_files = load_players(save_dir / "obs", cfg.get("aliases"))
     rows = [player_row(n, p, w) for n, p in players.items()]
+    positions = world_positions(save_dir, managed)
+    for r in rows:
+        r["pos"] = positions.get((r["name"], r["club"]))
     check_listed(cfg, "last_names", players.keys(), "has players never observed")
     check_listed(cfg, "last_batch", set(obs_files), "names files with no players")
 
@@ -705,7 +756,9 @@ OUTFIELD_ONLY = {"corners", "crossing", "dribbling", "finishing", "free_kick_tak
 FOOT_WORDS = [(20, "Very Strong"), (15, "Strong"), (12, "Fairly Strong"), (9, "Reasonable"), (5, "Weak"), (1, "Very Weak")]  # foot 1–20: lowest of each
 STAFF_SCALE_20 = {"adaptability", "authority", "working_with_youngsters"}  # fmsave gives the other staff attributes on 1–100
 BOARD_JOBS = {"chairperson", "director"}  # the board: not in FM's staff screens
-WORLD_META = ["uid", "name", "age", "club", "div", "nat", "rep", "foot", "wage", "value", "keeper", "minutes", "rating"]  # then attributes
+WORLD_META = ["uid", "name", "age", "club", "div", "nat", "rep", "foot", "wage", "value", "keeper", "minutes", "rating",
+              "club_rep", "status", "loan", "positions", "loan_from"]  # then attributes (older files end at rating, loan or positions)
+FM_POSITIONS = ["gk", "sw", "dl", "dc", "dr", "dm", "ml", "mc", "mr", "aml", "amc", "amr", "stc", "wbl", "wbr"]  # world's positions: FM's 1–20 ratings, one letter each (template.html POS_CODES)
 
 
 def fm_name(key):
@@ -713,13 +766,25 @@ def fm_name(key):
     return " ".join(w if w in ("of", "on") else w.capitalize() for w in key.split("_"))
 
 
+# FM's rounding for display: (from, step), the first band the number reaches. Checked against FM27 screens: wages on
+# 2,763 search and squad rows (£100–£350K p/w), values on 173 single-number search rows the same day as the save.
+# template.html and charts.html: the same.
+WAGE_STEPS = [(250e3, 1e4), (100e3, 5e3), (50e3, 1e3), (20e3, 500), (5e3, 250), (1e3, 100), (500, 25), (0, 10)]
+VALUE_STEPS = [(100e6, 1e6), (10e6, 5e5), (1e6, 1e5), (250e3, 25e3), (100e3, 1e4), (30e3, 5e3), (10e3, 2e3), (5e3, 1e3), (0, 500)]
+
+
+def fm_round(value, steps):
+    """A number rounded as FM shows it: wage 5365 -> 5250, value 468693 -> 475000 (halves up)."""
+    step = next(s for low, s in steps if value >= low)
+    return math.floor(value / step + 0.5) * step
+
+
 def fm_money(value, currency, suffix=""):
-    """A number -> as FM shows it: 2500000 -> £2.5M, 1147 -> £1.1K, 934 -> £934."""
+    """A number (fm_round it first) -> FM's text: 2500000 -> £2.5M, 12750 -> £12.75K, 925 -> £925."""
     for unit, size in (("M", 1e6), ("K", 1e3)):
         if value >= size:
-            x = value / size
-            text = f"{x:.2f}" if x < 10 else f"{x:.1f}" if x < 100 else f"{x:.0f}"
-            return f"{currency}{text.rstrip('0').rstrip('.') if '.' in text else text}{unit}{suffix}"
+            text = f"{value / size:.2f}".rstrip("0").rstrip(".")
+            return f"{currency}{text}{unit}{suffix}"
     return f"{currency}{value:.0f}{suffix}"
 
 
@@ -828,6 +893,8 @@ def import_save(save, config, save_file=None):
     minutes = lambda p: season.get(p["uid"], [0])[0]
     attrs = sorted(k[11:] for k in (players[0] if players else {}) if k.startswith("attributes_") and k[11:] not in HIDDEN_ATTRS)
     keeper = lambda p: "GK" in p["natural_positions"].split(";")
+    # transfer value: "ok" is a number, "zero" FM's £0; anything else (a placeholder: FM shows Not for Sale) none
+    value = lambda p: float(p["transfer_value"] or 0) if p["transfer_value_state"] in ("ok", "zero") else None
     slug = re.sub(r"[^a-z0-9]+", "-", managed.lower()).strip("-") + "-save"
     written = []
 
@@ -841,8 +908,8 @@ def import_save(save, config, save_file=None):
                 continue
             loan = ("out" if p["loan_parent_club_uid"] == uid else "in") if p["on_loan"] == "true" else ""
             rows.append([p["name"], managed, p["age"], foot_word(p["left_foot"]),
-                         fm_money(float(p["contract_wage"]) * rate, currency, " p/w") if float(p["contract_wage"] or 0) else "N/A",  # no contract yet
-                         fm_money(float(p["transfer_value"]) * rate, currency) if p["transfer_value_state"] == "ok" and p["transfer_value"] else "",
+                         fm_money(fm_round(float(p["contract_wage"]) * rate, WAGE_STEPS), currency, " p/w") if float(p["contract_wage"] or 0) else "N/A",  # no contract yet
+                         fm_money(fm_round(value(p) * rate, VALUE_STEPS), currency) if value(p) is not None else "",
                          loan, minutes(p), rating(p), *(p[f"attributes_{k}"] for k in keys)])
         if rows:
             out = save_dir / "obs" / f"{date}_{slug}_{view}.csv"
@@ -878,8 +945,12 @@ def import_save(save, config, save_file=None):
         rows.append([p["uid"], p["name"], p["age"], managed if p["club_uid"] == uid else c["short_name"] if c else "",
                      divs.get(p["club_uid"], ""), nations.get(p["nation_id"], ""), p["reputation_current"], p["left_foot"],
                      round(float(p["contract_wage"]) * rate) if p["contract_wage"] else "",
-                     round(float(p["transfer_value"]) * rate) if p["transfer_value_state"] == "ok" and p["transfer_value"] else "",
-                     1 if keeper(p) else "", minutes(p) or "", rating(p), *(p[f"attributes_{k}"] for k in attrs)])
+                     round(value(p) * rate) if value(p) is not None else "",
+                     1 if keeper(p) else "", minutes(p) or "", rating(p), p["club_reputation"] if c else "",
+                     p["contract_squad_status"], 1 if p["on_loan"] == "true" else "",
+                     "".join(chr(64 + int(p[f"positions_{k}"] or 1)) for k in FM_POSITIONS),
+                     clubs[p["loan_parent_club_uid"]]["short_name"] if p["on_loan"] == "true" and p["loan_parent_club_uid"] in clubs else "",
+                     *(p[f"attributes_{k}"] for k in attrs)])
     (save_dir / "world").mkdir(exist_ok=True)
     out = save_dir / "world" / f"{date}.csv.gz"
     with gzip.open(out, "wt", newline="", encoding="utf-8") as f:

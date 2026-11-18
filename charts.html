@@ -96,7 +96,9 @@ let VIEW = [];
 const AXIS_POOL = (keep = () => true) => DATA.filter(p => ((!p.squad && DIVISIONS.includes(p.division)) || p.hl) && keep(p));
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
 
-const money = v => SITE.currency + (v >= 1e6 ? +(v / 1e6).toFixed(2) + "M" : v >= 1e3 ? +(v / 1e3).toFixed(2) + "K" : v);
+const WAGE_STEPS = [[250e3, 1e4], [100e3, 5e3], [50e3, 1e3], [20e3, 500], [5e3, 250], [1e3, 100], [500, 25], [0, 10]];  // score.py: the same
+const wage = v => { const s = WAGE_STEPS.find(([low]) => v >= low)[1]; v = Math.floor(v / s + 0.5) * s;  // as FM shows it
+  return SITE.currency + (v >= 1e6 ? +(v / 1e6).toFixed(2) + "M" : v >= 1e3 ? +(v / 1e3).toFixed(2) + "K" : v); };
 // Players without the attribute (keepers have no Pace or Jumping Reach) drop out of its charts
 const speed = p => p[state.speed];
 const inGroup = (p, pos) => p.scores[pos] != null && p.best === pos;  // each player in their best role
@@ -125,7 +127,7 @@ function hover(p, e) {
   if (!p) { tip.style.display = "none"; return; }
   document.querySelectorAll(`.dot[data-name="${CSS.escape(p.name)}"]`).forEach(d => { d.classList.add("hl"); d.parentNode.appendChild(d); });
   const sc = Object.entries(p.scores).map(([k, v]) => `${k} ${v.toFixed(1)}`).join(" · ");
-  tip.innerHTML = `<div class="nm">${p.name}</div><div class="d">${p.club} · ${p.age} · ${p.wage == null ? "–" : money(p.wage) + " p/w"}</div>` +
+  tip.innerHTML = `<div class="nm">${p.name}</div><div class="d">${p.club} · ${p.age} · ${p.wage == null ? "–" : wage(p.wage) + " p/w"}</div>` +
     `<div>${sc} <span class="d">(best ${p.best})</span>${p.win == null ? "" : ` · %win ${fmtWin(p.win)}`}${p.pts == null ? "" : ` · GKpts ${fmtWin(p.pts)}`}</div>` +
     `<div>${p.rating == null ? "" : `rating ${p.rating.toFixed(2)} <span class="d">in ${p.minutes} mins</span> · `}` +
     `${Object.keys(SPEEDS).map(a => `${a === state.speed ? "<b>" : ""}${a.toLowerCase()} ${p[a] ?? "–"}${a === state.speed ? "</b>" : ""}`).join(" · ")}</div>`;

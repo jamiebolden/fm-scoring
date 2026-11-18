@@ -76,6 +76,26 @@ __THEME__
                     padding: 1px 8px; cursor: pointer; }
   #toggles button.on { color: var(--cyan); border-color: var(--cyan); }
   #toggles button u { text-decoration: none; color: var(--fg); }
+  /* Position filter: a button, and under it a little pitch of FM positions, each off / 18+ / 15+ */
+  .tgroup { display: inline-flex; gap: 6px; }  /* the toggles and pos: spaced as one row of buttons */
+  #posbox { display: none; position: relative; white-space: nowrap; }
+  #posbtn { font: inherit; font-size: 12px; color: var(--dim); background: transparent; border: 1px solid var(--line); padding: 1px 8px; cursor: pointer; }
+  #posbtn.on { color: var(--cyan); border-color: var(--cyan); }
+  #posbtn u { text-decoration: none; color: var(--fg); }
+  .pn { color: var(--green); } .pa { color: var(--yellow); }
+  #pitch { display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; background: var(--bg);
+           border: 2px solid var(--blue); padding: 10px 12px; }
+  #pitch.show { display: block; }
+  #pitch .grid { display: grid; grid-template-columns: repeat(3, 58px); gap: 8px; padding: 10px; justify-items: center;
+                 border: 1px solid var(--line); background: color-mix(in srgb, var(--green) 6%, transparent); }
+  #pitch .grid button { width: 52px; font: inherit; font-size: 12px; padding: 3px 0; cursor: pointer; color: var(--dim);
+                        background: transparent; border: 1px solid var(--line); }
+  #pitch .grid button:hover { border-color: var(--fg); }
+  #pitch .grid button.cur { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  #pitch .grid button.s18 { background: var(--green); border-color: var(--green); color: var(--desk); font-weight: 700; }
+  #pitch .grid button.s15 { background: var(--yellow); border-color: var(--yellow); color: var(--desk); font-weight: 700; }
+  #pitch .sub { font-size: 11px; margin-top: 8px; line-height: 1.5; }
+  #pitch .sub a { color: var(--cyan); cursor: pointer; }
   #pager { display: none; color: var(--dim); padding: 10px 10px 2px; user-select: none; }
   #pager a { color: var(--cyan); cursor: pointer; }
   #pager b { color: var(--fg); font-weight: normal; }
@@ -85,7 +105,8 @@ __THEME__
 <div class="bar">
   <span class="pages">__NAV__</span>
   <input id="filter" placeholder="/ filter  e.g. age<=24 best=CB vs>=90 left=yes" spellcheck="false" autocomplete="off">
-  <span id="toggles"></span>
+  <span class="tgroup"><span id="toggles"></span>
+  <span id="posbox"><button id="posbtn"></button><div id="pitch"></div></span></span>
   <span id="count"></span>
   <span id="batch" title="b: older batch · B: newer"></span>
   <a class="helphint" href="#" id="helphint"><b>?</b> keyboard shortcuts</a>
@@ -110,7 +131,8 @@ __THEME__
     <tr><td><b>/</b> or <b>f</b></td><td>filter box (<b>enter</b> / <b>esc</b> to leave it)</td></tr>
     <tr><td><b>esc</b></td><td>clear the filter</td></tr>
     <tr><td><b>n</b> / <b>p</b></td><td>next / previous page of 100 rows</td></tr>
-    <tr><td><b>r</b> <b>e</b> <b>l</b></td><td>players page from the save: reputation up to your squad's best · clubs in England (and English free agents) · divisions below yours</td></tr>
+    <tr><td><b>m</b> <b>e</b> <b>l</b></td><td>players page from the save (your own players are on the squad page): maybe, i.e. likely persuadable (≥ 70%) · clubs in England (and English free agents) · divisions below yours</td></tr>
+    <tr><td><b>o</b></td><td>positions: a little pitch; click a position for FM's natural (rating 18+), again for accomplished (15+), again for off. Players must cover every position set; a <b>Pos</b> column shows their naturals (green) and 15–17s (yellow). on the pitch, <b>← ↑ ↓ →</b> move and <b>enter</b> clicks. <b>x</b> clears, <b>esc</b> closes. From the save (import)</td></tr>
     <tr><td><b>b</b> / <b>B</b></td><td>last screenshots pages: the previous / next of the last few batches (or click the batch name)</td></tr>
     <tr><td><b>?</b></td><td>show / hide this</td></tr>
     <tr><td colspan="2" class="sub">filters: <b>col:text</b> contains · <b>col=x</b> · <b>col!=x</b> · <b>col&lt;n</b> <b>col&lt;=n</b> <b>col&gt;n</b> <b>col&gt;=n</b><br>
@@ -124,11 +146,17 @@ const DATA = __DATA__;
 const BATCHES = __BATCHES__;  // last pages: the recent batches' labels, newest first; each row's `batches` says which it's in
 let batch = 0;
 const loanLabel = r => r.loan === "trial" ? "trial" : "loan " + r.loan;  // "loan in", "loan out", "trial"
+// FM's rounding for display, [from, step]: the first band the number reaches (score.py WAGE_STEPS / VALUE_STEPS: the same)
+const WAGE_STEPS = [[250e3, 1e4], [100e3, 5e3], [50e3, 1e3], [20e3, 500], [5e3, 250], [1e3, 100], [500, 25], [0, 10]];
+const VALUE_STEPS = [[100e6, 1e6], [10e6, 5e5], [1e6, 1e5], [250e3, 25e3], [100e3, 1e4], [30e3, 5e3], [10e3, 2e3], [5e3, 1e3], [0, 500]];
+const fmRound = (v, steps) => { const s = steps.find(([low]) => v >= low)[1]; return Math.floor(v / s + 0.5) * s; };
 const FMT = {
   f1: v => v.toFixed(1),
   f2: v => v.toFixed(2),
   pct: v => Math.round(v * 100) + "%",
   money: v => SITE.currency + (v >= 1e6 ? +(v / 1e6).toFixed(2) + "M" : v >= 1e3 ? +(v / 1e3).toFixed(2) + "K" : v),
+  wage: v => FMT.money(fmRound(v, WAGE_STEPS)),  // as FM shows it: £5,365 -> £5.25K
+  value: v => FMT.money(fmRound(v, VALUE_STEPS)),  // £468,693 -> £475K
   delta: v => Math.abs(v) < 0.05 ? "0.0" : (v > 0 ? "+" : "−") + Math.abs(v).toFixed(1),
   win: v => Math.abs(v) < 0.05 ? "0.0" : (v > 0 ? "+" : "−") + Math.abs(v).toFixed(1),  // %win: win-rate points vs an all-12 team
   pts: v => Math.abs(v) < 0.05 ? "0.0" : (v > 0 ? "+" : "−") + Math.abs(v).toFixed(1),  // keeper pts: league points a season vs a level-12 keeper
@@ -177,15 +205,33 @@ function scoreAttrs(attrs, keeper, age) {  // score.py's player_row: positions, 
   out.pts = keeper && Object.keys(S.gk_pts).length ? Object.entries(S.gk_pts).reduce((t, [a, p]) => attrs[a] == null ? t : t + ptsValue(p, attrs[a]), 0) : null;
   return out;
 }
-const ROWS = !WORLD ? DATA : WORLD.rows.map(([uid, name, ci, di, nat, age, foot, wage, value, rep, keeper, minutes, rating, s]) => ({
-  uid, name, club: WORLD.clubs[ci] || "Free agent", div: WORLD.divs[di] || null, nat, age, foot, wage, value, valueLo: value, rep,
-  keeper: !!keeper, minutes, rating, s, left: foot == null ? null : foot >= 12 ? "yes" : "no", ...scoreAttrs(decodeAttrs(s), !!keeper, age),
+const ROWS = !WORLD ? DATA : WORLD.rows.map(([uid, name, ci, di, nat, age, foot, wage, value, rep, keeper, minutes, rating, s, pers, pos, loanFrom]) => ({
+  uid, name, pos, loan: loanFrom ? "in" : null, loanFrom: typeof loanFrom === "string" ? loanFrom : null, club: WORLD.clubs[ci] || "Free agent", div: WORLD.divs[di] || null, nat, age, foot, wage, value, valueLo: value, rep,
+  keeper: !!keeper, minutes, rating, s, pers: pers == null ? null : pers / 100, left: foot == null ? null : foot >= 12 ? "yes" : "no", ...scoreAttrs(decodeAttrs(s), !!keeper, age),
 }));
+// Positions (from the save: score.py FM_POSITIONS): FM's 1–20 rating for each, one letter each (A = 1 … T = 20)
+const POS_CODES = ["GK", "SW", "DL", "DC", "DR", "DM", "ML", "MC", "MR", "AML", "AMC", "AMR", "ST", "WBL", "WBR"];
+const PITCH = [[null, "ST", null], ["AML", "AMC", "AMR"], [null, "DM", null], ["DL", "DC", "DR"]];  // the pop-over, top = attack
+const NATURAL = 18, ACCOMPLISHED = 15;  // FM's natural and accomplished (fmsave's bands)
+const posRating = (r, code) => r.pos ? r.pos.charCodeAt(POS_CODES.indexOf(code)) - 64 : null;
+for (const r of ROWS) {  // the Pos column: naturals, then 15–17s, each best first
+  if (!r.pos) continue;
+  const at = (lo, hi) => POS_CODES.map((c, i) => [c, r.pos.charCodeAt(i) - 64]).filter(([, v]) => v >= lo && v <= hi).sort((a, b) => b[1] - a[1]).map(([c]) => c);
+  const n = at(NATURAL, 20), a = at(ACCOMPLISHED, NATURAL - 1);
+  r.posText = [...n, ...a.map(c => c.toLowerCase())].join(" ");
+  r.posHtml = `<span class="pn">${n.join(" ")}</span>${n.length && a.length ? " " : ""}<span class="pa">${a.join(" ")}</span>`;
+}
+const HAS_POS = ROWS.some(r => r.pos);
+const POS_COL = { key: "posText", label: "Pos" };
+let posSel = {};  // { "AML": 15, "DC": 18 }: players need at least that rating in every one
+let posCur = "DC";  // the pitch's keyboard cursor (arrows move it, enter clicks it)
 // Toggles (players page from the save), on by default: likely signings. "lower": your division's tier and below
 const tierOf = d => { const m = /^[A-Z]{3}(\d+)/.exec(d || ""); return m ? +m[1] : null; };
 const MY_TIER = WORLD && tierOf(WORLD.myDiv);
+const PERSUADABLE = 0.7;  // the maybe toggle: Pers at least this (score.py persuadable(): the model)
 const TOGGLES = !WORLD ? [] : [
-  { key: "rep", hint: "r", label: "<u>r</u>ep cap", title: `reputation up to ${WORLD.managed}'s best player's`, test: r => WORLD.cap == null || r.rep <= WORLD.cap },
+  { key: "pers", hint: "m", label: "<u>m</u>aybe", title: `persuadable: likely to consider a transfer to ${WORLD.managed} (≥ 70%; free agents: reputation up to 1.2× the club's)`,
+    test: r => r.pers != null ? r.pers >= PERSUADABLE : r.club !== "Free agent" || WORLD.cap == null || r.rep <= WORLD.cap },
   { key: "eng", hint: "e", label: "<u>E</u>ngland", title: "clubs in England's leagues, and English free agents", test: r => r.div ? r.div.startsWith("ENG") : r.nat === "ENG" },
   { key: "lower", hint: "l", label: "<u>l</u>ower divs", title: `divisions below ${WORLD.myDiv || "yours"}`, test: r => { const t = tierOf(r.div); return t == null || MY_TIER == null || t > MY_TIER; } },
 ];
@@ -193,16 +239,18 @@ let toggles = Object.fromEntries(TOGGLES.map(t => [t.key, true]));
 const PAGE_ROWS = 100;
 let pageStart = 0, base = [];
 const input = document.getElementById("filter"), help = document.getElementById("help"), detail = document.getElementById("detail");
-let sortKey = COLS.some(c => c.key === "vsAge") ? "vsAge" : COLS.find(c => c.num && c.fmt)?.key, dir = -1, cur = { r: 0, c: 0 }, view = [];
+const DEFAULT_SORT = COLS.some(c => c.key === "vsAge") ? "vsAge" : COLS.find(c => c.num && c.fmt)?.key;
+let sortKey = DEFAULT_SORT, dir = -1, cur = { r: 0, c: 0 }, view = [];
 
 try {
   const s = JSON.parse(localStorage.getItem(STORE) || "{}");
   if (s.sortKey && COLS.some(c => c.key === s.sortKey)) ({ sortKey, dir } = s);
   input.value = s.q || "";
   if (s.toggles) toggles = { ...toggles, ...s.toggles };
+  if (HAS_POS && s.posSel) posSel = s.posSel;
 } catch (e) {}
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ sortKey, dir, q: input.value, toggles })); } catch (e) {}
+  try { localStorage.setItem(STORE, JSON.stringify({ sortKey: sortKey === POS_COL.key ? null : sortKey, dir, q: input.value, toggles, posSel })); } catch (e) {}
 }
 
 function tier(v, [lo, hi]) {
@@ -252,7 +300,12 @@ function refresh() {
   input.classList.toggle("bad", bad);
   const on = TOGGLES.filter(t => toggles[t.key]);
   base = BATCHES.length ? ROWS.filter(r => r.batches.includes(batch)) : on.length ? ROWS.filter(r => on.every(t => t.test(r))) : ROWS;
-  view = base.filter(r => tests.every(t => t(r))).sort((a, b) => {
+  const need = Object.entries(posSel);
+  // the Pos column shows (after the name) while any position is set
+  const ci = COLS.indexOf(POS_COL);
+  if (need.length && ci < 0) { COLS.splice(1, 0, POS_COL); if (cur.c >= 1) cur.c++; }
+  if (!need.length && ci >= 0) { COLS.splice(ci, 1); if (cur.c >= ci) cur.c = Math.max(0, cur.c - 1); if (sortKey === POS_COL.key) sortKey = DEFAULT_SORT; }
+  view = base.filter(r => need.every(([c, lo]) => posRating(r, c) >= lo) && tests.every(t => t(r))).sort((a, b) => {
     const x = a[sortKey], y = b[sortKey];
     if (x == null || y == null) return (x == null) - (y == null);  // blanks always last
     return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * dir;
@@ -273,6 +326,7 @@ function render(again = true) {
   const tg = document.getElementById("toggles");
   tg.style.display = TOGGLES.length ? "inline-flex" : "none";
   tg.innerHTML = TOGGLES.map(t => `<button data-t="${t.key}" class="${toggles[t.key] ? "on" : ""}" title="${t.title} (${t.hint})">${t.label}</button>`).join("");
+  renderPos();
   if (BATCHES.length) {
     const el = document.getElementById("batch");
     el.style.display = "inline";
@@ -284,16 +338,53 @@ function render(again = true) {
   document.getElementById("body").innerHTML = shown.map((r, i) => { const ri = pageStart + i; return `<tr class="${ri === cur.r ? "currow" : ""}">` + COLS.map((c, ci) => {
     const v = r[c.key], at = ri === cur.r && ci === cur.c ? " cur" : "";
     if (v == null) return `<td class="${c.num ? "num " : ""}dim${at}">–</td>`;
-    if (c.fmt === "money") return `<td class="num${at}">${FMT.money(v)}</td>`;
-    if (c.fmt === "range") return `<td class="num${at}">${r.valueLo === v ? FMT.money(v) : FMT.money(r.valueLo) + "–" + FMT.money(v)}</td>`;
+    if (c.fmt === "money") return `<td class="num${at}">${FMT.wage(v)}</td>`;
+    if (c.fmt === "range") return `<td class="num${at}">${r.valueLo === v ? FMT.value(v) : FMT.value(r.valueLo) + "–" + FMT.value(v)}</td>`;
     if (c.fmt === "yesno") return `<td class="${v === "yes" ? "t4" : "dim"}${at}">${v}</td>`;
     if (c.fmt) return `<td class="num ${tier(v, RANGE[c.fmt])}${at}">${FMT[c.fmt](v)}</td>`;
-    if (c.key === "name") return `<td class="${at}">${v}${r.team ? `<span class="team">${r.team}</span>` : ""}${r.loan ? `<span class="loan ${r.loan}">${loanLabel(r)}</span>` : ""}</td>`;
+    if (c.key === "posText") return `<td class="${at}">${r.posHtml}</td>`;
+    if (c.key === "name") return `<td class="${at}">${v}${r.team ? `<span class="team">${r.team}</span>` : ""}${r.loan ? `<span class="loan ${r.loan}"${r.loanFrom ? ` title="on loan from ${esc(r.loanFrom)}"` : ""}>${loanLabel(r)}</span>` : ""}</td>`;
     return `<td class="${c.num ? "num" : "text"}${at}">${v}</td>`;
   }).join("") + "</tr>"; }).join("");
   document.querySelector("td.cur")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   save();
 }
+
+// The position button (o) and its pitch: each position cycles off → 18+ (natural) → 15+ (accomplished) → off
+const pitch = document.getElementById("pitch");
+function renderPos() {
+  const box = document.getElementById("posbox"), btn = document.getElementById("posbtn"), sel = Object.entries(posSel);
+  box.style.display = HAS_POS && TABLE ? "inline-block" : "none";
+  if (!HAS_POS) return;
+  btn.className = sel.length ? "on" : "";
+  btn.title = "positions: players who cover every one set (o)";
+  btn.innerHTML = `p<u>o</u>s` + (sel.length ? ": " + sel.map(([c, lo]) => `<span class="${lo >= NATURAL ? "pn" : "pa"}">${c}${lo}</span>`).join(" ") : "");
+  pitch.innerHTML = `<div class="grid">${PITCH.flat().map(c => c == null ? "<span></span>" :
+    `<button data-pos="${c}" class="${posSel[c] ? "s" + posSel[c] : ""}${c === posCur ? " cur" : ""}">${c}</button>`).join("")}</div>
+    <div class="sub"><span class="pn">natural</span> · <span class="pa">accomplished</span></div>`;
+}
+function cyclePos(c) {
+  const next = { undefined: NATURAL, [NATURAL]: ACCOMPLISHED, [ACCOMPLISHED]: undefined }[posSel[c]];
+  if (next) posSel[c] = next; else delete posSel[c];
+  cur.r = 0; render();
+}
+// Arrows on the pitch: the nearest position that way (up / down: the next line first; left / right: the same line first)
+function movePos(dr, dc) {
+  const at = c => { const r = PITCH.findIndex(row => row.includes(c)); return [r, PITCH[r].indexOf(c)]; };
+  const [r0, c0] = at(posCur);
+  const next = PITCH.flat().filter(Boolean).map(c => { const [r, k] = at(c); return { c, r: r - r0, k: k - c0 }; })
+    .filter(o => dr ? o.r * dr > 0 : o.k * dc > 0)
+    .sort((a, b) => Math.abs(a.r) - Math.abs(b.r) || Math.abs(a.k) - Math.abs(b.k))[0];
+  if (next) { posCur = next.c; renderPos(); }
+}
+function clearPos() { posSel = {}; cur.r = 0; render(); }
+document.getElementById("posbtn").addEventListener("click", e => { e.stopPropagation(); pitch.classList.toggle("show"); });
+pitch.addEventListener("click", e => {
+  e.stopPropagation();
+  const b = e.target.closest("[data-pos]"), x = e.target.closest("[data-clear]");
+  if (b) { posCur = b.dataset.pos; cyclePos(posCur); } else if (x) clearPos();
+});
+document.addEventListener("click", () => pitch.classList.remove("show"));
 
 function sortBy(ci) {
   const key = COLS[ci].key;
@@ -316,6 +407,16 @@ document.addEventListener("keydown", e => {
   }
   if (e.key === "?") { help.classList.toggle("show"); e.preventDefault(); return; }
   if (e.key === "Escape" && help.classList.contains("show")) { help.classList.remove("show"); return; }
+  if (pitch.classList.contains("show")) {  // the pitch has the keyboard: arrows move, enter clicks, esc (or o) closes
+    const mv = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+    if (mv) movePos(...mv);
+    else if (e.key === "Enter" || e.key === " ") cyclePos(posCur);
+    else if (e.key === "Escape" || e.key === "o") pitch.classList.remove("show");
+    else if (e.key === "x") clearPos();
+    else return;
+    e.preventDefault();
+    return;
+  }
   if (PAGES[e.key] && PAGES[e.key] !== PAGE) { location.href = PAGES[e.key] + ".html"; return; }
   if (!TABLE) return;
   const move = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
@@ -328,6 +429,8 @@ document.addEventListener("keydown", e => {
   else if (toggle) flip(toggle.key);
   else if (e.key === "s") sortBy(cur.c);
   else if (e.key === "c") document.execCommand("copy");
+  else if (e.key === "o" && HAS_POS) pitch.classList.toggle("show");
+  else if (e.key === "x" && HAS_POS && Object.keys(posSel).length) clearPos();
   else if (e.key === "Enter" && view[cur.r]) openDetail(view[cur.r]);
   else if (e.key === "/" || e.key === "f") input.focus();
   else if ((e.key === "b" || e.key === "B") && BATCHES.length > 1) cycleBatch(e.key === "b" ? 1 : -1);
@@ -414,7 +517,7 @@ function showDetail(r) {
   }).join("") + "</tr>").join("");
   document.getElementById("detailbody").innerHTML = `
     <div class="ttitle">${r.name} <span class="sub">· ${[r.club, r.age != null && r.age + "y",
-      ...("job" in r ? [r.job, r.personality] : ["left foot " + (last.leftFoot ?? "–"), r.loan && loanLabel(r)])].filter(Boolean).join(" · ")}</span></div>
+      ...("job" in r ? [r.job, r.personality] : ["left foot " + (last.leftFoot ?? "–"), r.loan && loanLabel(r) + (r.loanFrom ? " from " + esc(r.loanFrom) : ""), r.posHtml])].filter(Boolean).join(" · ")}</span></div>
     ${H.length === 1 ? `<div class="sub">Only one observation so far (${last.date}); changes appear once there's a later game date (screenshots or an import).</div>` : ""}
     <table><thead><tr><th>Date</th><th>Club</th><th class="num">Age</th>${pos.map(k => `<th class="num">${k}</th>`).join("")}${win ? `<th class="num">%win</th>` : ""}${pts ? `<th class="num">GKpts</th>` : ""}<th>Best</th>${vs ? `<th class="num">vs Age</th>` : ""}</tr></thead>
       <tbody>${scoreRows}</tbody></table>

@@ -5,9 +5,9 @@ FM has no data export, so the user takes screenshots of in-game player tables an
 transcribes them to CSV. The managed club's own squad and staff can instead be read from the save file (`score.py import`). `score.py` turns those into seven pages per save (keys 1–7):
 
 1. **squad**: the club the user manages
-2. **players**: every player in the game, from the save file (`world/`), with three toggles, on by default: reputation up to
-   the squad's best, England (clubs in England's leagues, and English free agents), and divisions below the managed club's.
-   100 rows per page (`n` / `p`). Without a save file: every other player they've screenshotted
+2. **players**: every player in the game but the managed club's, from the save file (`world/`), with three toggles, on by default: maybe
+   (likely persuadable: ≥ 70% chance they'd consider a transfer to the managed club), England (clubs in England's leagues, and English free agents), and divisions below the managed club's.
+   100 rows per page (`n` / `p`); `o` filters by FM position ratings. Without a save file: every other player they've screenshotted
 3. **last**: just the players from the most recent set of screenshots (e.g. one transfer search); `b` / `B` step back
    through the last 3 sets (earlier `last_batch` / `last_names` values, from the `saves/` repo's history of save.toml)
 4. **staff**: every staff member observed, scored for each role (manager, coach groups, scout, physio…)
@@ -99,8 +99,8 @@ About 30 seconds.
   `recalled` and `staff_released`, and leaves `last_batch` alone (that's for screenshots). Re-importing the same game date
   rewrites its own files only.
 - Every player in the game (men's football) goes to `world/<date>.csv.gz`: name, age, club, division code, nationality,
-  current reputation (FM's 0–10,000; filtered on, not shown), foot, wage, value, this season's minutes and rating, and
-  every visible attribute. Each import adds a file, so history builds up (by fmsave's uid, not by name). Players fmsave
+  current reputation (FM's 0–10,000; not shown), foot, wage, value, this season's minutes and rating, their club's
+  reputation, squad status and whether they're out on loan (for the maybe toggle), FM's 15 position ratings (`positions`: 1–20, one letter each, `FM_POSITIONS` order; from 2030-03-14), the club they're on loan from (`loan_from`), and every visible attribute. Each import adds a file, so history builds up (by fmsave's uid, not by name). Players fmsave
   can't name (~0.6%) are left out.
 - Division: a club's first team's league, coded in `leagues/divisions.toml` (`ENG3`); clubs whose league isn't loaded in
   the save show their nation's code alone (`ESP`), or the tier below its coded leagues (`ENG7`: below the National
@@ -110,7 +110,12 @@ About 30 seconds.
   someone playing with it on would see more here than in FM.
 - It stops if the save manages another club or is dated before the save's latest observation.
 - Checked on FM 27.1.0 (fmsave 0.12.6): all 44 players' attributes, feet and names matched a same-day squad screen.
-  Wages are FM's exact numbers (FM rounds some, £934 shows as £925); transfer value is one number, not FM's range.
+  Wages and transfer values are FM's exact numbers, shown rounded as FM does (`WAGE_STEPS`, `VALUE_STEPS` in score.py;
+  the pages the same): wages to £10 under £500, £25 to £1K, £100 to £5K, £250 to £20K, £500 to £50K, £1K to £100K, then £5K / £10K
+  (172 of 173 same-day search rows matched); values as FM's single number (a selling club's, e.g. listed): £500 under £5K, £1K to £10K,
+  £2K to £30K, £5K to £100K, £10K to £250K, £25K to £1M, £0.1M to £10M, £0.5M, then £1M. FM shows anyone else's value as a range
+  around it (FM's uncertainty, not computed from it); a few show far above it (Ryan Hardie £75K vs £12.6K): cause unknown.
+  fmsave's `zero` value is FM's £0; a `placeholder` (FM: Not for Sale) is left blank, but FM's Not for Sale can also have a value here.
   Staff 1–100 values become FM's words as ⌈x/5⌉, then the nearest `[staff_words]` word.
 - fmsave warns about FM builds it hasn't registered; after a game update, compare one squad screen with an import.
 - Commit as for screenshots: `git -C saves add -A && git -C saves commit -m "<save>: import <date>"`.
@@ -172,13 +177,25 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
   to `released = [...]` in save.toml (name as in the obs files); don't edit obs files.
   Likewise a signing ("signed X") goes in `signed = [...]`: they count as the managed club's until a newer squad screen. A player back from loan ("recalled X") goes in `recalled = [...]`: clears their `out` flag.
   When a new squad screen comes in, empty `released`, `signed` and `recalled`.
-- **Loan** flags show next to names, from the latest observation that has a `Loan` column. Filter with `loan-in` / `loan-out` / `trial`.
+- **Loan** flags show next to names, from the latest observation that has a `Loan` column (players page from the save: `loan in` for anyone on loan, the parent club on hover and in their history). Filter with `loan-in` / `loan-out` / `trial`.
 - **Youth team** (`U18`, green, next to the name): the player's latest screen of the club's own squad was a youth team's (source `-u18s`, `-u21s`); `u18` filters for them.
 - **Rating / minutes / division:** from the latest observation only (they're per season); rating and minutes show on the players page.
 - **Players page from the save:** the page holds compact rows (attributes one letter each) and scores them in the browser,
   the same way as `score.py` (`scoreAttrs` in template.html: keep the two in step). The history overlay loads
-  `out/<save>/history/<uid % 128>.js`, written from every world file. Toggles: `r` reputation ≤ the squad's best
-  (`cap`), `e` England, `l` tiers below the managed club's (a code with no tier passes).
+  `out/<save>/history/<uid % 128>.js`, written from every world file. Toggles: `m` maybe
+  (persuadable chance ≥ 70%, `PERSUADABLE`; free agents: reputation ≤ 1.2× the managed club's), `e` England, `l` tiers below the managed
+  club's (a code with no tier passes).
+- **Positions** (`o`, players, squad and last pages; from the save only): a pitch of DL DC DR DM AML AMC AMR ST (`PITCH` in template.html),
+  each clicked (or arrows + enter while it's open; esc closes) off → 18+ (FM's natural) → 15+ (accomplished) → off; players must reach every one set (`x` clears). While any is set a
+  **Pos** column shows their naturals (green) then 15–17s (yellow). Squad and last rows get their ratings from the latest world file,
+  matched on name and club (`world_positions`), so a screenshot-only player, or one whose name or club differs from the save's, has none.
+- **Persuadable chance** (the maybe toggle; not shown as a column): the chance a player would consider a transfer to the managed club, FM's
+  "Player's interest: Transfer only, Persuadable" (`persuadable()` in score.py). 0% above 1.2× the managed club's reputation
+  (`PERSUADE_CAP`: no one above it was persuadable) or at a club outside England and Scotland; else a logistic model on their
+  reputation and their club's (each against the managed club's), their club being below it, squad status and being out on
+  loan (`PERSUADE_MODEL`). Fitted on one League One save's persuadable search (817 players, 131 persuadable; calibrated);
+  one model for every save. To refit: a persuadable search sorted by wage, screenshotted the same game day as an import,
+  matched to the save (everyone above the list's lowest wage who isn't on it is a no).
 - **Charts page:** with a save file, every player in the latest `world/` file at a club in a coded league (`ENG1`–`ENG6`;
   not `ENG7` or a nation's code alone), the managed club's as its squad, default division the managed club's (`ENG3`);
   no searches or `leagues/` needed. Without one: players whose latest observation is a league search (a `Division` column), grouped by best role for the by-position strips.
