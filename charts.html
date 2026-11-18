@@ -91,9 +91,19 @@ if (!DIVISIONS.includes(state.division)) state.division = DIVISIONS[0];
 const inLeague = p => !p.squad && p.division === state.division;
 const isHl = p => state.club === MANAGED ? p.squad : inLeague(p) && p.club === state.club;
 const clubs = () => [MANAGED, ...[...new Set(DATA.filter(inLeague).map(p => p.club))].filter(c => c !== MANAGED).sort()];
+// The role and attribute strips take each club's first team, not its whole squad (youth included): its top CORE
+// outfield players by %win and top CORE_GK keepers by GKpts. The scatters and club tables still take everyone.
+const CORE = 18, CORE_GK = 3;
+{
+  const byClub = {};
+  for (const p of DATA) (byClub[p.squad ? "\0squad" : p.club] ||= []).push(p);
+  for (const ps of Object.values(byClub))
+    for (const [v, n] of [[p => p.win, CORE], [p => p.pts, CORE_GK]])
+      ps.filter(p => v(p) != null).sort((a, b) => v(b) - v(a)).slice(0, n).forEach(p => p.core = true);
+}
 let VIEW = [];
 // Axes span every division (and the highlighted club), so switching division doesn't move them
-const AXIS_POOL = () => DATA.filter(p => (!p.squad && DIVISIONS.includes(p.division)) || p.hl);
+const AXIS_POOL = (keep = () => true) => DATA.filter(p => ((!p.squad && DIVISIONS.includes(p.division)) || p.hl) && keep(p));
 const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} };
 
 const money = v => SITE.currency + (v >= 1e6 ? +(v / 1e6).toFixed(2) + "M" : v >= 1e3 ? +(v / 1e3).toFixed(2) + "K" : v);
@@ -151,14 +161,14 @@ function axis(svg, scale, horizontal, at, span, label) {
   }
 }
 
-// One row of dots per position; tick = league median (labelled with its value when showMedian)
+// One row of dots per position, each club's core players only (CORE); tick = league median (labelled with its value when showMedian)
 // min: where the axis starts; values below it sit on the axis's left edge
 function strip(id, value, label, groupFor, step, showMedian, min) {
   const box = document.getElementById(id); box.innerHTML = "";
   const W = box.clientWidth, rowH = 46, L = 64, R = 46, H = POSITIONS.length * rowH + 30;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H }, box);
-  const rows = POSITIONS.map(pos => ({ pos, ps: VIEW.filter(p => groupFor(p, pos) && value(p, pos) != null) }));
-  const all = POSITIONS.flatMap(pos => AXIS_POOL().filter(p => groupFor(p, pos)).map(p => value(p, pos)).filter(v => v != null));
+  const rows = POSITIONS.map(pos => ({ pos, ps: VIEW.filter(p => p.core && groupFor(p, pos) && value(p, pos) != null) }));
+  const all = POSITIONS.flatMap(pos => AXIS_POOL(p => p.core).filter(p => groupFor(p, pos)).map(p => value(p, pos)).filter(v => v != null));
   if (!rows.some(r => r.ps.length)) return;
   const [lo, hi] = extent(all, 0.04), sx = linear([min ?? lo, hi], [L, W - R], step), x = v => sx(Math.max(v, sx.domain[0]));
   axis(svg, sx, true, H - 24, H - 24, label);

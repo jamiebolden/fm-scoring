@@ -186,6 +186,8 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
   each shared file loads on its own, so its players have no history.
   Dropdowns pick the division (the baseline, blue) and a club to highlight (orange): the managed club's squad
   screen, or any club in that division. Defaults: save.toml's `division` and `managed_club`.
+  The two by-position strips take each club's first team only: its top 18 outfield players by %win and top 3 keepers by GKpts
+  (`CORE`, `CORE_GK` in charts.html); the scatters and %win-by-club tables still take every player.
   r = correlation over the league players; the dashed line is their least-squares fit.
   The %win scatters take every outfield player. **%win by club**: each club's players in
   the division's search, their mean and median %win, **best 10** (the mean of the club's top 10; sorted on it) and the %win of the club's top 12, best on
