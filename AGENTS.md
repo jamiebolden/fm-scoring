@@ -179,7 +179,9 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
   the same way as `score.py` (`scoreAttrs` in template.html: keep the two in step). The history overlay loads
   `out/<save>/history/<uid % 128>.js`, written from every world file. Toggles: `r` reputation ≤ the squad's best
   (`cap`), `e` England, `l` tiers below the managed club's (a code with no tier passes).
-- **Charts page:** players whose latest observation is a league search (a `Division` column), grouped by best role for the by-position strips.
+- **Charts page:** with a save file, every player in the latest `world/` file at a club in a coded league (`ENG1`–`ENG6`;
+  not `ENG7` or a nation's code alone), the managed club's as its squad, default division the managed club's (`ENG3`);
+  no searches or `leagues/` needed. Without one: players whose latest observation is a league search (a `Division` column), grouped by best role for the by-position strips.
   A division the save hasn't searched (fewer than 20 players, `MIN_DIVISION`) comes from `leagues/` instead, marked `(shared)` in the dropdown;
   each shared file loads on its own, so its players have no history.
   Dropdowns pick the division (the baseline, blue) and a club to highlight (orange): the managed club's squad

@@ -290,6 +290,34 @@ def world_page(save_dir, w, managed):
     return cols, data
 
 
+def world_charts(save_dir, w, managed):
+    """The charts page from the latest world file: every player at a club in a coded league (ENG1–ENG6: not ENG7 or a
+    nation's code alone, which are no one league), plus the managed club's players as its squad. None without one."""
+    files = world_files(save_dir)
+    if not files:
+        return None
+    attrs, rows = read_world(files[-1])
+    leagues = set(load_toml(DIVISIONS)["divisions"].values())
+    out = []
+    for r in rows:
+        squad = r["club"] == managed
+        if not squad and r["div"] not in leagues:
+            continue
+        a = {k: int(r[k]) for k in attrs if r[k]}
+        keeper = bool(r["keeper"])
+        scores = weighted(a, {"GK": w["gk"]} if keeper else w["outfield"])
+        if not scores:
+            continue
+        out.append({"name": r["name"], "club": r["club"], "division": r["div"], "age": int(r["age"]), "squad": squad, "ref": False,
+                    "wage": int(r["wage"]) if r["wage"] else None, "rating": float(r["rating"]) if r["rating"] else None,
+                    "minutes": int(r["minutes"]) if r["minutes"] else None, "best": max(scores, key=scores.get),
+                    "win": None if keeper else win_score(a, w), "pts": pts_score(a, w) if keeper else None, "scores": scores,
+                    **{c: a.get(c) for c in CHART_ATTRS}})
+    mine = [p["division"] for p in out if p["squad"]]
+    return {"positions": [*w["outfield"], "GK"], "players": out, "managed": managed,
+            "division": max(set(mine), key=mine.count) if mine else None}
+
+
 def write_world_history(save, out):
     """out/<save>/history/<n>.js: every world file's snapshot of each player, for the history overlay, split into
     WORLD_SHARDS files so opening one player loads a small file (a file:// page can load scripts, not fetch files)."""
@@ -492,7 +520,7 @@ def build(save):
                                                 lambda r, files, names: r["name"] in names if names
                                                 else bool(players[r["name"]]["files"] & files))),
         "filters": ([], filters(signed_up, w)),
-        "charts": ([], charts(rows, signed_up, w, cfg)),
+        "charts": ([], world_charts(save_dir, w, managed) or charts(rows, signed_up, w, cfg)),  # from the save, else searches
         "staff": (staff_cols(roles), staff_rows),
         # the batch's files, plus anyone named in last_staff_names
         "last_staff": (staff_cols(roles), *batched(staff_rows, recent_batches(save, cfg, "last_staff_batch", "last_staff_names"),
