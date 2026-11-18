@@ -10,6 +10,7 @@
 - `ca_costs_fm27.csv`: CA cost of each attribute by position.
 - `training_focuses_fm27.csv`: the attributes each training session works on.
 - `match_experience.md`: how match experience feeds monthly CA growth (from a YouTube comment by the FM-Arena AI tester).
+- `youth_intake_fm24.md`: how FM24 makes youth intakes (blueprints, preview, PA from junior coaching and the nation PA quota, CA as a share of PA), by LightningFlik on [FM-Arena](https://fm-arena.com/threads/summary-of-recent-findings-for-optimal-play-in-fm24.152/page-2#post-841), reverse-engineered from FM24's code. All credit to its author.
 
 My test's schedules are in `schedules/`. Each setup has one schedule per week of a 4-week cycle, plus a matching `u18` version for the youth team:
 
