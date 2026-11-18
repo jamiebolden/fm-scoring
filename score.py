@@ -447,7 +447,8 @@ def write_pages(save, config, cfg, pages):
     pts = json.dumps({a: [round(pts_value(v, x), 2) for x in range(1, 21)]  # keeper pts by level 1–20: the overlay's breakdown
                       for a, v in w.get("gk_pts", {}).items()})
     for page, (columns, data, *batches) in pages.items():  # last pages: + their recent batches' labels
-        nav = "".join(f'<a href="{p}.html"{" class=\"on\"" if p == page else ""}>{keys[p]} {labels[p]}</a>' for p in PAGES)
+        on = ' class="on"'  # a backslash inside an f-string's braces needs Python 3.12
+        nav = "".join(f'<a href="{p}.html"{on if p == page else ""}>{keys[p]} {labels[p]}</a>' for p in PAGES)
         data = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")  # a "</script>" in a name can't end the script
         template = (ROOT / ("charts.html" if page == "charts" else "template.html")).read_text(encoding="utf-8")
         page_html = (template.replace("__THEME__", theme).replace("__NAV__", nav)
