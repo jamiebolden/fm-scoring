@@ -190,11 +190,10 @@ Press the number keys to move between pages, and **?** on any page for its keybo
 | 1 | Your squad | Every player at your club, scored for each position |
 | 2 | Players | Every player in the game, from your save file (or every other player you've screenshotted). Toggles narrow it to likely signings |
 | 3 | Last | Just the players from your latest screenshots |
-| 4 | Filters | Your best players per position, and minimum attributes to search FM for players better than them |
-| 5 | Charts | Your squad against a whole league: scores, key attributes and ratings |
-| 6 | Staff | Every staff member you've screenshotted, scored for each job |
-| 7 | Last staff | Just the staff from your latest staff screenshots |
-| 8 | Staff filters | Your best staff per job, and minimum attributes to search FM for staff better than them |
+| 4 | Staff | Every staff member you've screenshotted, scored for each job |
+| 5 | Last staff | Just the staff from your latest staff screenshots |
+| 6 | Charts | Your squad against a whole league: scores, key attributes and ratings |
+| 7 | Filters | Your best players per position and staff per job, and minimum attributes to search FM for better ones |
 
 Click a column heading to sort by it, and double-click a player to see their history. Type in the box at the top
 to filter: for example, `age<=21 best=CB` shows centre-backs aged 21 and under.

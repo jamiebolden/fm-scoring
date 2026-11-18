@@ -2,7 +2,7 @@
 
 Scores Football Manager players on weighted attributes and tracks them over game time.
 FM has no data export, so the user takes screenshots of in-game player tables and an agent
-transcribes them to CSV. The managed club's own squad and staff can instead be read from the save file (`score.py import`). `score.py` turns those into eight pages per save (keys 1–8):
+transcribes them to CSV. The managed club's own squad and staff can instead be read from the save file (`score.py import`). `score.py` turns those into seven pages per save (keys 1–7):
 
 1. **squad**: the club the user manages
 2. **players**: every player in the game, from the save file (`world/`), with three toggles, on by default: reputation up to
@@ -10,13 +10,13 @@ transcribes them to CSV. The managed club's own squad and staff can instead be r
    100 rows per page (`n` / `p`). Without a save file: every other player they've screenshotted
 3. **last**: just the players from the most recent set of screenshots (e.g. one transfer search); `b` / `B` step back
    through the last 3 sets (earlier `last_batch` / `last_names` values, from the `saves/` repo's history of save.toml)
-4. **filters**: per position, the squad's best players and suggested minimums for FM's player search
-5. **charts**: one division at a time, players with a match rating (a league-wide search): role scores by position, and an attribute
+4. **staff**: every staff member observed, scored for each role (manager, coach groups, scout, physio…)
+5. **last_staff**: just the staff from the most recent set of staff screenshots; `b` / `B` likewise for the last 3
+6. **charts**: one division at a time (from the save, or league searches): role scores by position, and an attribute
    (a toggle: Acceleration, Pace, Stamina, Strength, Jumping Reach, Anticipation, Concentration) by position, with the squad overlaid;
    then %win vs minutes and vs rating, and %win by club
-6. **staff**: every staff member observed, scored for each role (manager, coach groups, scout, physio…)
-7. **last_staff**: just the staff from the most recent set of staff screenshots; `b` / `B` likewise for the last 3
-8. **staff_filters**: per staff role, the club's best staff and suggested minimums (as FM's words) for FM's staff search
+7. **filters**: per position, the squad's best players and suggested minimums for FM's player search; then per staff role,
+   the club's best staff and suggested minimums (as FM's words) for FM's staff search
 
 Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on Windows it may be `python` or `py`).
 
@@ -25,7 +25,7 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 | Path | Purpose |
 |---|---|
 | `config.toml` | This computer's settings: `active_save` (the save being worked on; only ever touch that save), `screenshots_dir`, `currency`, optional `money_rate` and `fmsave_python` (for `import`). Gitignored; `python3 score.py init` writes it, `config.example.toml` shows it. |
-| `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; page 5's default), `save_file` (the `.fm` file `import` reads; optional), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 7), `last_staff_names` (staff already observed to add to page 7), `intake_kept` (intake players kept: they join the squad), `released` (players gone since the latest squad screen) `signed` (players joined since) `recalled` (back from loan since), `staff_released` (staff let go since) and `aliases` (a name FM cut off in an obs file → the full name). |
+| `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; the charts page's default without a save file), `save_file` (the `.fm` file `import` reads; optional), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 5), `last_staff_names` (staff already observed to add to page 5), `intake_kept` (intake players kept: they join the squad), `released` (players gone since the latest squad screen) `signed` (players joined since) `recalled` (back from loan since), `staff_released` (staff let go since) and `aliases` (a name FM cut off in an obs file → the full name). |
 | `saves/<save>/obs/*.csv` | Observations: `<YYYY-MM-DD>_<source>_<view>.csv`, one per screenshot set. Append-only. |
 | `saves/<save>/staff/*.csv` | Staff observations: `<YYYY-MM-DD>_<source>.csv` (`search-coach`). Append-only. |
 | `saves/<save>/world/*.csv.gz` | Every player in the game, one file per `import` (`<YYYY-MM-DD>.csv.gz`): the players page, and its history. |
@@ -65,7 +65,7 @@ The user says something like "new screenshots".
    `search-<what>` (`search-cb`). Copy the header from an existing file of the same view.
    - Columns: `Name`, `Club`, `Age`, `Left Foot`, `Wage`, `Transfer Value`, `Loan`, then attributes as integers.
      If the view shows `Minutes`, `Rating` (average rating) and `Division`, add them after `Loan`, division in full
-     (`Sky Bet League One`); they feed page 5. One file per division: `search-league-one`, `search-championship`.
+     (`Sky Bet League One`); they feed the charts page (without a save file). One file per division: `search-league-one`, `search-championship`.
      Copy `Minutes` exactly as shown, even when it breaks FM's sort order. Ignore `Height`.
    - An attribute you can't read (covered by something): leave it empty; the previous value carries forward.
    - A `gk` file holds only goalkeepers (everyone in one is scored as a keeper). If FM's GK view lists outfielders too, skip them.
@@ -129,11 +129,11 @@ attributes. Same steps as players (date, crest check, `score.py screenshots`), b
   Set Set Pieces · GK Goalkeeping. The text is small: crop the screenshot to read it, with whatever's installed: `sips -c H W --cropOffset Y X in --out crop.png`
   (macOS), `magick in -crop WxH+X+Y crop.png` (ImageMagick, any OS), or Pillow if it's there. Write crops to a temp folder, not the repo.
 - The user saying staff have gone ("released X", "removed all staff except Y"): add them to `staff_released = [...]` in save.toml
-  (names as in the staff files); they show as `left <club>` and drop off page 8. Don't edit staff files. Empty it when a new screen of the club's staff comes in.
+  (names as in the staff files); they show as `left <club>` and drop off the filters page. Don't edit staff files. Empty it when a new screen of the club's staff comes in.
 - Set `last_staff_batch` in `save.toml` and remove any `last_staff_names` (the user's "add X to last staff": names exactly as in the staff files), run `python3 score.py --open last_staff`, commit.
 - Scoring: words → range midpoints (`[staff_words]`: Good = 13, Average = 10.5…), role score = Σ(value × weight) / Σ(weights).
   Each `[staff.<label>]` table in the weights file is a role: the label is its column, and `[staff_names]` gives its
-  full name (shown on page 8). A new role needs both.
+  full name (shown on the filters page). A new role needs both.
 
 ## Starting a new save
 

@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 CONFIG = ROOT / "config.toml"
-PAGES = ["squad", "players", "last", "filters", "charts", "staff", "last_staff", "staff_filters"]  # keys 1-8, in this order
+PAGES = ["squad", "players", "last", "staff", "last_staff", "charts", "filters"]  # keys 1-7, in this order
 META = {"Name", "Club", "Age", "Left Foot", "Wage", "Transfer Value", "Loan", "Minutes", "Rating", "Division"}  # every other column is an attribute
 STAFF_META = {"Name", "Club", "Age", "Job", "Personality"}
 LEFT_FOOTED = {"Fairly Strong", "Strong", "Very Strong"}
@@ -519,13 +519,14 @@ def build(save):
         "last": (player_cols(w, True, with_rating=False), *batched(rows, recent_batches(save, cfg, "last_batch", "last_names"),
                                                 lambda r, files, names: r["name"] in names if names
                                                 else bool(players[r["name"]]["files"] & files))),
-        "filters": ([], filters(signed_up, w)),
-        "charts": ([], world_charts(save_dir, w, managed) or charts(rows, signed_up, w, cfg)),  # from the save, else searches
         "staff": (staff_cols(roles), staff_rows),
         # the batch's files, plus anyone named in last_staff_names
         "last_staff": (staff_cols(roles), *batched(staff_rows, recent_batches(save, cfg, "last_staff_batch", "last_staff_names"),
                                                    lambda r, files, names: bool(staff[r["name"]]["files"] & files) or r["name"] in names)),
-        "staff_filters": ([], staff_filters(club_staff, roles, w.get("staff_words", {}), w.get("staff_names", {}))),
+        "charts": ([], world_charts(save_dir, w, managed) or charts(rows, signed_up, w, cfg)),  # from the save, else searches
+        # players' search minimums per position, then staff's per role
+        "filters": ([], [{"section": "Players"}, *filters(signed_up, w),
+                         {"section": "Staff"}, *staff_filters(club_staff, roles, w.get("staff_words", {}), w.get("staff_names", {}))]),
     }
 
 
@@ -558,7 +559,7 @@ def write_pages(save, config, cfg, pages):
         (out / f"{page}.html").write_text(page_html, encoding="utf-8")
     write_world_history(save, out)
     print(f"[{save}] out/{save}/: " + ", ".join(f"{p} ({len(d['rows']) if isinstance(d, dict) else sum(0 in r.get('batches', [0]) for r in d)})" for p, (_, d, *_) in pages.items()
-                                                 if p not in ("filters", "charts", "staff_filters")))
+                                                 if p not in ("filters", "charts")))
     return out
 
 

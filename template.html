@@ -69,6 +69,8 @@ __THEME__
   .helphint { color: var(--dim); text-decoration: none; white-space: nowrap; }
   .helphint b { color: var(--fg); font-weight: normal; }
   .tiles td.wrap { white-space: normal; }
+  .tiles .section { grid-column: 1 / -1; color: var(--purple); font-weight: 700; padding: 8px 2px 0; }
+  .tiles .section:first-child { padding-top: 0; }
   #toggles { display: none; gap: 6px; white-space: nowrap; }
   #toggles button { font: inherit; font-size: 12px; color: var(--dim); background: transparent; border: 1px solid var(--line);
                     padding: 1px 8px; cursor: pointer; }
@@ -99,7 +101,7 @@ __THEME__
 <div id="help"><div class="tile">
   <div class="ttitle">keyboard shortcuts</div>
   <table>
-    <tr><td><b>1</b> … <b>8</b></td><td>__HOME__ · players · last screenshots · filters · charts · staff · last staff screenshots · staff filters</td></tr>
+    <tr><td><b>1</b> … <b>7</b></td><td>__HOME__ · players · last screenshots · staff · last staff screenshots · charts · filters</td></tr>
     <tr><td><b>← ↑ ↓ →</b></td><td>move the cell cursor</td></tr>
     <tr><td><b>enter</b></td><td>player (or staff) history over time (or double-click a row; <b>esc</b> closes)</td></tr>
     <tr><td><b>s</b> (in history)</td><td>%win (or GKpts) table: outline in orange the player's levels when first observed (where they started); again to hide</td></tr>
@@ -117,7 +119,7 @@ __THEME__
 </div></div>
 <script>
 const PAGE = "__PAGE__", SITE = __SITE__, PAGES = SITE.pages;
-const TABLE = !["filters", "staff_filters"].includes(PAGE);  // the other pages are tiles, with no table to filter or move around
+const TABLE = PAGE !== "filters";  // the other pages are tiles, with no table to filter or move around
 const DATA = __DATA__;
 const BATCHES = __BATCHES__;  // last pages: the recent batches' labels, newest first; each row's `batches` says which it's in
 let batch = 0;
@@ -452,12 +454,12 @@ function winBreakdown(r, last, key) {
       <tbody>${rows}</tbody></table>`;
 }
 
-// Filters pages: DATA is one entry per position or staff role (filters() and staff_filters() in score.py); staff values come with FM's words as labels
+// Filters page: DATA is a section heading, one entry per position, another heading, one per staff role (filters() and staff_filters() in score.py); staff values come with FM's words as labels
 function renderFilters() {
   input.style.visibility = "hidden";
   const main = document.getElementById("main");
   main.className = "tiles";
-  main.innerHTML = DATA.map(f => `<div class="tile">
+  main.innerHTML = DATA.map(f => f.section ? `<div class="section">${f.section}</div>` : `<div class="tile">
     <div class="ttitle">${f.pos}${f.title ? ` <span class="sub">· ${f.title}</span>` : ""}</div>
     <table>
       <thead><tr><th>Attribute</th><th class="num wt">Wt</th>${f.players.map(p =>
@@ -507,7 +509,7 @@ help.addEventListener("click", e => { if (e.target === help) help.classList.remo
 detail.addEventListener("click", e => { if (e.target === detail) detail.classList.remove("show"); });
 document.getElementById("helphint").addEventListener("click", e => { e.preventDefault(); help.classList.add("show"); });
 if (PAGE.endsWith("staff")) input.placeholder = "/ filter  e.g. job:coach PosTct>=12 personality:prof";
-if (PAGE === "filters" || PAGE === "staff_filters") renderFilters(); else render();
+if (PAGE === "filters") renderFilters(); else render();
 </script>
 </body>
 </html>
