@@ -5,7 +5,9 @@ FM has no data export, so the user takes screenshots of in-game player tables an
 transcribes them to CSV. The managed club's own squad and staff can instead be read from the save file (`score.py import`). `score.py` turns those into eight pages per save (keys 1–8):
 
 1. **squad**: the club the user manages
-2. **elsewhere**: every other player they've looked at
+2. **players**: every player in the game, from the save file (`world/`), with three toggles, on by default: reputation up to
+   the squad's best, England (clubs in England's leagues, and English free agents), and the managed club's division and below.
+   100 rows per page. Without a save file: every other player they've screenshotted
 3. **last**: just the players from the most recent set of screenshots (e.g. one transfer search); `b` / `B` step back
    through the last 3 sets (earlier `last_batch` / `last_names` values, from the `saves/` repo's history of save.toml)
 4. **filters**: per position, the squad's best players and suggested minimums for FM's player search
@@ -22,10 +24,13 @@ Runs on macOS, Windows and Linux: stdlib Python 3.11+ only (`python3` here; on W
 
 | Path | Purpose |
 |---|---|
-| `config.toml` | This computer's settings: `active_save` (the save being worked on; only ever touch that save), `screenshots_dir`, `currency`, optional `money_rate` and `fmsave` (for `import`). Gitignored; `python3 score.py init` writes it, `config.example.toml` shows it. |
+| `config.toml` | This computer's settings: `active_save` (the save being worked on; only ever touch that save), `screenshots_dir`, `currency`, optional `money_rate` and `fmsave_python` (for `import`). Gitignored; `python3 score.py init` writes it, `config.example.toml` shows it. |
 | `saves/<save>/save.toml` | `weights` (→ `weights/<name>.toml`), `managed_club` (exactly as FM shows it), `short_name` (page 1 label), `division` (the managed club's, as FM shows it; page 5's default), `save_file` (the `.fm` file `import` reads; optional), `last_batch` (obs files for page 3), `last_staff_batch` (staff files for page 7), `last_staff_names` (staff already observed to add to page 7), `intake_kept` (intake players kept: they join the squad), `released` (players gone since the latest squad screen) `signed` (players joined since) `recalled` (back from loan since), `staff_released` (staff let go since) and `aliases` (a name FM cut off in an obs file → the full name). |
 | `saves/<save>/obs/*.csv` | Observations: `<YYYY-MM-DD>_<source>_<view>.csv`, one per screenshot set. Append-only. |
 | `saves/<save>/staff/*.csv` | Staff observations: `<YYYY-MM-DD>_<source>.csv` (`search-coach`). Append-only. |
+| `saves/<save>/world/*.csv.gz` | Every player in the game, one file per `import` (`<YYYY-MM-DD>.csv.gz`): the players page, and its history. |
+| `leagues/divisions.toml` | FM's database ids → codes: `[divisions]` a league → `ENG3`, `[nations]` a nation → `ESP` (FIFA codes). The same in every save. |
+| `fmsave_read.py` | Run by `import` under fmsave's Python 3.12 (via uv): reads the save once and writes its tables as CSV. |
 | `weights/<name>.toml` | Position weights (`[outfield.*]`, `[gk]`), the %win and GKpts tests (`[win]`, `[gk_pts]`), age benchmarks, and staff scoring: `[staff_words]` (FM's words → numbers) and `[staff.<role>]` (the role's column label, then attribute weights). |
 | `weights/<name>_staff.md` | Notes on the staff weights: sources, FM27 key attributes, calibration. |
 | `weights/fm27_positions.xlsx` | Working sheet for the position weights: fm27 (GK, CB, WB/6, 10, 9) beside fm27v2 (GK, FB, CB, 6, wing, 10, 9), with each %win attribute's value. fm27v2 needs Crossing in the views. |
@@ -85,15 +90,23 @@ The user says something like "new screenshots".
 
 The user says something like "update from my save" (they've just saved in FM): run `python3 score.py --open squad import`.
 It reads save.toml's `save_file` (or `--file`) with [fmsave](https://github.com/rhiever/fmsave), run as its own program
-(`uvx`, which fetches fmsave and Python 3.12; or config.toml's `fmsave` command), so `score.py` stays stdlib-only.
+(`fmsave_read.py` under `uvx`, which fetches fmsave and Python 3.12; or config.toml's `fmsave_python`), so `score.py` stays stdlib-only.
+About 30 seconds.
 
 - It writes the managed club's players as a squad screen would, `obs/<date>_<club>-save_{outfield,gk}.csv`, with every
   visible attribute, full names, this season's minutes and average rating (all competitive matches), and its staff as
   `staff/<date>_<club>-save.csv` (FM's words; no Personality). Dated the game date. It empties `released`, `signed`,
   `recalled` and `staff_released`, and leaves `last_batch` alone (that's for screenshots). Re-importing the same game date
   rewrites its own files only.
-- Only the managed club: the save holds every player's true attributes, but FM shows other clubs' players only as
-  scouted, so they stay screenshots.
+- Every player in the game (men's football) goes to `world/<date>.csv.gz`: name, age, club, division code, nationality,
+  current reputation (FM's 0–10,000; filtered on, not shown), foot, wage, value, this season's minutes and rating, and
+  every visible attribute. Each import adds a file, so history builds up (by fmsave's uid, not by name). Players fmsave
+  can't name (~0.6%) are left out.
+- Division: a club's first team's league, coded in `leagues/divisions.toml` (`ENG3`); clubs whose league isn't loaded in
+  the save show their nation's code alone (`ESP`, or `ENG` below step 6). `import` names any one-nation league it finds
+  with no code: add it to `[divisions]` (nation code + tier; parallel leagues get a letter, `ENG6N`).
+- These are every player's true attributes. This user plays with attribute masking off, so that's what FM shows them;
+  someone playing with it on would see more here than in FM.
 - It stops if the save manages another club or is dated before the save's latest observation.
 - Checked on FM 27.1.0 (fmsave 0.12.6): all 44 players' attributes, feet and names matched a same-day squad screen.
   Wages are FM's exact numbers (FM rounds some, £934 shows as £925); transfer value is one number, not FM's range.
@@ -153,14 +166,18 @@ If FM renames an attribute, use the new name in the CSV header and in the weight
   observation. Enter/double-click a player for their history by date.
 - **Left** = yes for Fairly Strong or better (`LEFT_FOOTED` in `score.py`).
 - **Left the club:** a managed-club player missing from the latest squad screen (non-`search-` file) moves to
-  elsewhere as `left <club>`. A youth, reserve or first-team squad screen (source ending `-u18s`, `-u21s`, `-reserves`, `-first-team`: `PARTIAL_SQUAD`)
+  the players page as `left <club>` (without a save file). A youth, reserve or first-team squad screen (source ending `-u18s`, `-u21s`, `-reserves`, `-first-team`: `PARTIAL_SQUAD`)
   shows only part of the club, so it updates its players but doesn't count as the squad screen. The user saying a player's gone ("sold X", "released X") before the next squad screen: add them
   to `released = [...]` in save.toml (name as in the obs files); don't edit obs files.
   Likewise a signing ("signed X") goes in `signed = [...]`: they count as the managed club's until a newer squad screen. A player back from loan ("recalled X") goes in `recalled = [...]`: clears their `out` flag.
   When a new squad screen comes in, empty `released`, `signed` and `recalled`.
 - **Loan** flags show next to names, from the latest observation that has a `Loan` column. Filter with `loan-in` / `loan-out` / `trial`.
 - **Youth team** (`U18`, green, next to the name): the player's latest screen of the club's own squad was a youth team's (source `-u18s`, `-u21s`); `u18` filters for them.
-- **Rating / minutes / division:** from the latest observation only (they're per season); rating and minutes show on elsewhere.
+- **Rating / minutes / division:** from the latest observation only (they're per season); rating and minutes show on the players page.
+- **Players page from the save:** the page holds compact rows (attributes one letter each) and scores them in the browser,
+  the same way as `score.py` (`scoreAttrs` in template.html: keep the two in step). The history overlay loads
+  `out/<save>/history/<uid % 128>.js`, written from every world file. Toggles: `r` reputation ≤ the squad's best
+  (`cap`), `e` England, `l` the managed club's tier and below (a code with no tier passes).
 - **Charts page:** players whose latest observation is a league search (a `Division` column), grouped by best role for the by-position strips.
   A division the save hasn't searched (fewer than 20 players, `MIN_DIVISION`) comes from `leagues/` instead, marked `(shared)` in the dropdown;
   each shared file loads on its own, so its players have no history.

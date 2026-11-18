@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 CONFIG = ROOT / "config.toml"
-PAGES = ["squad", "elsewhere", "last", "filters", "charts", "staff", "last_staff", "staff_filters"]  # keys 1-8, in this order
+PAGES = ["squad", "players", "last", "filters", "charts", "staff", "last_staff", "staff_filters"]  # keys 1-8, in this order
 META = {"Name", "Club", "Age", "Left Foot", "Wage", "Transfer Value", "Loan", "Minutes", "Rating", "Division"}  # every other column is an attribute
 STAFF_META = {"Name", "Club", "Age", "Job", "Personality"}
 LEFT_FOOTED = {"Fairly Strong", "Strong", "Very Strong"}
@@ -246,6 +246,74 @@ def charts(rows, squad, w, cfg):
             "managed": cfg["managed_club"], "division": cfg.get("division")}
 
 
+# --- the players page from the save: every player in the game ---
+
+WORLD_SHARDS = 128  # the history overlay loads one of these files (players whose uid % 128 = n) when it opens
+
+
+def world_files(save_dir):
+    return sorted((save_dir / "world").glob("*.csv.gz"))
+
+
+def read_world(path):
+    """(attribute names, rows as dicts) from one world/<date>.csv.gz."""
+    import gzip
+    with gzip.open(path, "rt", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        return reader.fieldnames[len(WORLD_META):], list(reader)
+
+
+def attr_string(row, attrs):
+    """A player's attributes as one letter each (1–20 -> A–T, unknown -> -): the page decodes them and scores in the browser."""
+    return "".join(chr(64 + int(row[a])) if row[a] else "-" for a in attrs)
+
+
+def world_page(save_dir, w, managed):
+    """The players page from the latest world file: compact rows the page decodes and scores itself (40k+ players), and
+    the reputation cap and division the page's toggles start from. None without a world file."""
+    files = world_files(save_dir)
+    if not files:
+        return None
+    attrs, rows = read_world(files[-1])
+    clubs, divs = {}, {}
+    out = [[int(r["uid"]), r["name"], clubs.setdefault(r["club"], len(clubs)), divs.setdefault(r["div"], len(divs)), r["nat"],
+            int(r["age"]) if r["age"] else None, int(r["foot"]) if r["foot"] else None, int(r["wage"]) if r["wage"] else None,
+            int(r["value"]) if r["value"] else None, int(r["rep"]) if r["rep"] else 0, 1 if r["keeper"] else 0,
+            int(r["minutes"]) if r["minutes"] else None, float(r["rating"]) if r["rating"] else None, attr_string(r, attrs)] for r in rows]
+    mine = [r for r in rows if r["club"] == managed]
+    my_div = max({r["div"] for r in mine}, key=[r["div"] for r in mine].count) if mine else ""
+    data = {"world": True, "date": files[-1].name[:10], "attrs": attrs, "clubs": list(clubs), "divs": list(divs), "rows": out,
+            "cap": max((int(r["rep"]) for r in mine if r["rep"]), default=None), "myDiv": my_div, "managed": managed,
+            "shards": WORLD_SHARDS, "scoring": {"win": w.get("win", {}), "gk_pts": w.get("gk_pts", {}), "age": w["age_benchmark"]}}
+    cols = player_cols(w, True)
+    cols.insert(2, {"key": "div", "label": "Div"})
+    return cols, data
+
+
+def write_world_history(save, out):
+    """out/<save>/history/<n>.js: every world file's snapshot of each player, for the history overlay, split into
+    WORLD_SHARDS files so opening one player loads a small file (a file:// page can load scripts, not fetch files)."""
+    files = world_files(ROOT / "saves" / save)
+    folder = out / "history"
+    if not files:
+        return
+    folder.mkdir(exist_ok=True)
+    shards, names = [{} for _ in range(WORLD_SHARDS)], None
+    for path in reversed(files):  # newest first: every file must have its attributes in the same order
+        attrs, rows = read_world(path)
+        if names and attrs != names:
+            raise SystemExit(f"world/{path.name}: its attributes aren't the latest world file's")
+        names = attrs
+        for r in rows:
+            shards[int(r["uid"]) % WORLD_SHARDS].setdefault(r["uid"], []).append(
+                [path.name[:10], int(r["age"]) if r["age"] else None, r["club"], r["div"], int(r["foot"]) if r["foot"] else None, attr_string(r, attrs)])
+    for shard in shards:
+        for h in shard.values():
+            h.reverse()  # oldest first, as the overlay expects
+    for n, shard in enumerate(shards):
+        (folder / f"{n}.js").write_text(f"HISTORY({n},{json.dumps(shard, ensure_ascii=False, separators=(',', ':'))});", encoding="utf-8")
+
+
 # --- staff ---
 
 def load_staff(staff_dir, words):
@@ -417,7 +485,8 @@ def build(save):
 
     return cfg, {
         "squad": (player_cols(w, False), signed_up),
-        "elsewhere": (player_cols(w, True), [r for r in rows if r["club"] != managed]),
+        # every player in the save (world/, from `import`), else every other player observed
+        "players": world_page(save_dir, w, managed) or (player_cols(w, True), [r for r in rows if r["club"] != managed]),
         # a screenshot of just names (e.g. a shortlist) picks players already observed; otherwise the batch's files
         "last": (player_cols(w, True, with_rating=False), *batched(rows, recent_batches(save, cfg, "last_batch", "last_names"),
                                                 lambda r, files, names: r["name"] in names if names
@@ -459,7 +528,8 @@ def write_pages(save, config, cfg, pages):
                      .replace("__BATCHES__", json.dumps(batches[0] if batches else [], ensure_ascii=False))
                      .replace("__COLS__", json.dumps(columns)).replace("__WEIGHTS__", weights).replace("__WIN__", win).replace("__PTS__", pts).replace("__DATA__", data))
         (out / f"{page}.html").write_text(page_html, encoding="utf-8")
-    print(f"[{save}] out/{save}/: " + ", ".join(f"{p} ({sum(0 in r.get('batches', [0]) for r in d)})" for p, (_, d, *_) in pages.items()
+    write_world_history(save, out)
+    print(f"[{save}] out/{save}/: " + ", ".join(f"{p} ({len(d['rows']) if isinstance(d, dict) else sum(0 in r.get('batches', [0]) for r in d)})" for p, (_, d, *_) in pages.items()
                                                  if p not in ("filters", "charts", "staff_filters")))
     return out
 
@@ -560,7 +630,8 @@ def share_leagues(save):
 
 # --- reading the save file: fmsave (github.com/rhiever/fmsave, Python 3.12+) runs as its own program, so this stays stdlib ---
 
-FMSAVE = ["uvx", "--python", "3.12", "--from", "fmsave>=0.12.6", "fmsave"]  # uv fetches fmsave and Python 3.12 itself
+FMSAVE_PYTHON = ["uvx", "--python", "3.12", "--with", "fmsave>=0.12.6", "python"]  # uv fetches fmsave and Python 3.12 itself
+DIVISIONS = ROOT / "leagues" / "divisions.toml"  # FM's database ids -> division and nation codes (ENG3, ESP)
 HIDDEN_ATTRS = {"consistency", "dirtiness", "important_matches", "injury_proneness", "versatility"}  # FM never shows these
 GK_ONLY = {"aerial_reach", "command_of_area", "communication", "eccentricity", "handling", "kicking", "one_on_ones", "punching",
            "reflexes", "rushing_out", "throwing"}  # left out of the outfield file
@@ -569,6 +640,7 @@ OUTFIELD_ONLY = {"corners", "crossing", "dribbling", "finishing", "free_kick_tak
 FOOT_WORDS = [(20, "Very Strong"), (15, "Strong"), (12, "Fairly Strong"), (9, "Reasonable"), (5, "Weak"), (1, "Very Weak")]  # foot 1–20: lowest of each
 STAFF_SCALE_20 = {"adaptability", "authority", "working_with_youngsters"}  # fmsave gives the other staff attributes on 1–100
 BOARD_JOBS = {"chairperson", "director"}  # the board: not in FM's staff screens
+WORLD_META = ["uid", "name", "age", "club", "div", "nat", "rep", "foot", "wage", "value", "keeper", "minutes", "rating"]  # then attributes
 
 
 def fm_name(key):
@@ -586,6 +658,10 @@ def fm_money(value, currency, suffix=""):
     return f"{currency}{value:.0f}{suffix}"
 
 
+def foot_word(value):
+    return next((word for low, word in FOOT_WORDS if value and int(value) >= low), "")
+
+
 def staff_word(key, value, words):
     """A staff attribute as FM's word: 1–100 -> 1–20 as FM rounds it (up), then the [staff_words] word nearest it."""
     v = value if key in STAFF_SCALE_20 else -(-value // 5)
@@ -597,10 +673,38 @@ def set_toml_key(text, key, value):
     return re.sub(rf"^{re.escape(key)}\s*=\s*(\[[^\]]*\]|.*)$", lambda m: f"{key} = {value}", text, count=1, flags=re.M)
 
 
+def read_csv(path):
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def club_divisions(tmp, clubs):
+    """Each club's division code: its first team's league (ENG3), else its nation's code (ESP); plus leagues with no code."""
+    codes = load_toml(DIVISIONS)
+    nations = {n["nation_id"]: codes["nations"].get(n["database_id"], "") for n in read_csv(tmp / "nations.csv")}
+    comp_db = {c["id"]: c["database_id"] for c in read_csv(tmp / "competitions.csv")}
+    div = {uid: nations.get(c["nation_id"], "") for uid, c in clubs.items()}
+    comps = {}  # competition -> its tables' teams (a split league or a cup's groups has several tables)
+    for t in json.loads((tmp / "league_tables.json").read_text(encoding="utf-8")):
+        comps.setdefault(comp_db.get(str(t["competition_id"])), []).append([x for x in t["teams"] if x["club_uid"] is not None])
+    unnamed = {}
+    for db, tables in comps.items():
+        tables = [teams for teams in tables if len(teams) >= 8]  # not cup groups or play-offs (the Premier League has a 2-team table)
+        if not tables or any(x["team_slot"] != 0 for teams in tables for x in teams):  # nor youth or reserve leagues
+            continue
+        uids = [str(x["club_uid"]) for teams in tables for x in teams]
+        if db in codes["divisions"]:
+            div.update({u: codes["divisions"][db] for u in uids})
+        elif len({clubs[u]["nation_id"] for u in uids if u in clubs}) == 1:  # one nation's league (not a continental one): no code yet
+            unnamed[db] = [clubs[u]["short_name"] for u in uids[:4] if u in clubs]
+    return div, nations, unnamed
+
+
 def import_save(save, config, save_file=None):
-    """Read the managed club's players and staff from the FM save file with fmsave, and write them as a squad screen and
-    a staff screen would: obs/<date>_<club>-save_{outfield,gk}.csv and staff/<date>_<club>-save.csv, dated the game date.
-    Only the managed club: the save holds everyone's true attributes, and FM shows other clubs' only as scouted."""
+    """Read the FM save file with fmsave. The managed club's players and staff become a squad screen and a staff screen
+    would (obs/<date>_<club>-save_{outfield,gk}.csv, staff/<date>_<club>-save.csv); every player in the game goes to
+    world/<date>.csv.gz for the players page. All dated the game date."""
+    import gzip
     import shlex
     import shutil
     import tempfile
@@ -611,68 +715,65 @@ def import_save(save, config, save_file=None):
         raise SystemExit(f'saves/{save}/save.toml has no save_file: add save_file = "<path to the .fm file>", or pass --file')
     if not path.is_file():
         raise SystemExit(f"Save file not found: {path}")
-    cmd = shlex.split(config["fmsave"]) if config.get("fmsave") else ["fmsave"] if shutil.which("fmsave") else FMSAVE
-    if cmd == FMSAVE and not shutil.which("uvx"):
-        raise SystemExit("Reading the save needs uv (https://docs.astral.sh/uv/), or fmsave installed with Python 3.12+ "
-                         '(`pip install fmsave`), or fmsave = "<command>" in config.toml')
+    cmd = shlex.split(config["fmsave_python"]) if config.get("fmsave_python") else FMSAVE_PYTHON
+    if cmd == FMSAVE_PYTHON and not shutil.which("uvx"):
+        raise SystemExit("Reading the save needs uv (https://docs.astral.sh/uv/), or a Python 3.12+ with fmsave installed "
+                         '(`pip install fmsave`) named in config.toml: fmsave_python = "<command>"')
     managed, currency, rate = cfg["managed_club"], config.get("currency", "£"), float(config.get("money_rate", 1))
     words = load_toml(ROOT / "weights" / f"{cfg['weights']}.toml").get("staff_words", {})
 
-    def fmsave(*args):
-        r = subprocess.run([*cmd, *args], capture_output=True, text=True, encoding="utf-8")
-        if r.returncode:
-            raise SystemExit(f"fmsave {args[0]} failed:\n{r.stderr.strip()[-2000:]}")
-        return r.stdout
-
     with tempfile.TemporaryDirectory() as tmp:
-        copy = Path(tmp) / "save.fm"  # FM may be writing the real one
+        tmp = Path(tmp)
+        copy = tmp / "save.fm"  # FM may be writing the real one
         shutil.copyfile(path, copy)
-        info = json.loads(fmsave("info", str(copy), "--json"))
-
-        def table(name):
-            fmsave("export", str(copy), name, "--all" if name == "managed-clubs" else "--managed-club", "-o", str(Path(tmp) / f"{name}.csv"))
-            with open(Path(tmp) / f"{name}.csv", newline="", encoding="utf-8") as f:
-                return list(csv.DictReader(f))
-
-        clubs = table("managed-clubs")
-        club = next((c for c in clubs if managed in (c["club_short_name"], c["club_name"])), None)
+        r = subprocess.run([*cmd, "-I", str(ROOT / "fmsave_read.py"), str(copy), str(tmp)], capture_output=True, text=True, encoding="utf-8")
+        if r.returncode:
+            raise SystemExit(f"Reading the save failed:\n{r.stderr.strip()[-2000:]}")
+        info = json.loads((tmp / "info.json").read_text(encoding="utf-8"))
+        club = next((c for c in read_csv(tmp / "managed_clubs.csv") if managed in (c["club_short_name"], c["club_name"])), None)
         if not club:
-            raise SystemExit(f"{path.name} manages {', '.join(c['club_short_name'] for c in clubs) or 'no club'}, "
+            raise SystemExit(f"{path.name} manages {', '.join(c['club_short_name'] for c in read_csv(tmp / 'managed_clubs.csv')) or 'no club'}, "
                              f"but save.toml's managed_club is {managed}: another save?")
-        players, stats, staff = table("players"), table("player-season-stats"), table("staff")
+        date = info["game_date"]
+        latest = max((p.name[:10] for d in ("obs", "staff", "world") for p in (save_dir / d).glob("*.csv*")), default="")
+        if date < latest:
+            raise SystemExit(f"{path.name} is at {date}, before this save's latest observation ({latest}): another save, or an old one?")
+        if not info.get("known_build"):
+            print(f"fmsave reads FM build {info.get('build')} with its nearest known layout: worth checking a few values against FM")
+        clubs = {c["uid"]: c for c in read_csv(tmp / "clubs.csv")}
+        divs, nations, unnamed = club_divisions(tmp, clubs)
+        players, staff = read_csv(tmp / "players.csv"), read_csv(tmp / "staff.csv")
+        season = {}  # this season's minutes and average rating, all competitive matches ("overall"), over all of a player's teams
+        with open(tmp / "player_season_stats.csv", newline="", encoding="utf-8") as f:
+            for s in csv.DictReader(f):
+                if s["kind"] == "overall":
+                    m = season.setdefault(s["player_uid"], [0, 0, 0.0])
+                    n = int(s["rated_appearances"] or 0)
+                    m[0] += int(s["minutes"] or 0)
+                    m[1] += n
+                    m[2] += float(s["average_rating"]) * n if n and s["average_rating"] else 0
 
-    date = info["game_date"]
-    latest = max((p.name[:10] for d in ("obs", "staff") for p in (save_dir / d).glob("*.csv")), default="")
-    if date < latest:
-        raise SystemExit(f"{path.name} is at {date}, before this save's latest observation ({latest}): another save, or an old one?")
-    if not info.get("known_build"):
-        print(f"fmsave reads FM build {info.get('build')} with its nearest known layout: worth checking a few values against FM")
-
-    # this season's minutes and average rating, all competitive matches ("overall"), summed over the club's teams
-    season = {}
-    for r in stats:
-        if r["kind"] == "overall":
-            s = season.setdefault(r["player_uid"], [0, 0, 0.0])
-            n = int(r["rated_appearances"] or 0)
-            s[0] += int(r["minutes"] or 0)
-            s[1] += n
-            s[2] += float(r["average_rating"]) * n if n and r["average_rating"] else 0
-    slug = re.sub(r"[^a-z0-9]+", "-", managed.lower()).strip("-") + "-save"
+    uid = club["club_uid"]
+    rating = lambda p: f"{season[p['uid']][2] / season[p['uid']][1]:.2f}" if season.get(p["uid"], [0, 0])[1] else ""
+    minutes = lambda p: season.get(p["uid"], [0])[0]
     attrs = sorted(k[11:] for k in (players[0] if players else {}) if k.startswith("attributes_") and k[11:] not in HIDDEN_ATTRS)
+    keeper = lambda p: "GK" in p["natural_positions"].split(";")
+    slug = re.sub(r"[^a-z0-9]+", "-", managed.lower()).strip("-") + "-save"
     written = []
+
+    # The managed club, as a squad screen (players out on loan included, as FM lists them)
+    squad = [p for p in players if p["club_uid"] == uid or (p["on_loan"] == "true" and p["loan_parent_club_uid"] == uid)]
     for view, skip in (("outfield", GK_ONLY), ("gk", OUTFIELD_ONLY)):
         keys = [k for k in attrs if k not in skip]
         rows = []
-        for p in sorted(players, key=lambda p: p["name"]):
-            if ("GK" in p["natural_positions"].split(";")) != (view == "gk"):
+        for p in sorted(squad, key=lambda p: p["name"]):
+            if keeper(p) != (view == "gk"):
                 continue
-            minutes, rated, total = season.get(p["uid"], (0, 0, 0))
-            loan = ("out" if p["loan_parent_club_uid"] == club["club_uid"] else "in") if p["on_loan"] == "true" else ""
-            foot = next((word for low, word in FOOT_WORDS if p["left_foot"] and int(p["left_foot"]) >= low), "")
-            rows.append([p["name"], managed, p["age"], foot,
+            loan = ("out" if p["loan_parent_club_uid"] == uid else "in") if p["on_loan"] == "true" else ""
+            rows.append([p["name"], managed, p["age"], foot_word(p["left_foot"]),
                          fm_money(float(p["contract_wage"]) * rate, currency, " p/w") if float(p["contract_wage"] or 0) else "N/A",  # no contract yet
                          fm_money(float(p["transfer_value"]) * rate, currency) if p["transfer_value_state"] == "ok" and p["transfer_value"] else "",
-                         loan, minutes, f"{total / rated:.2f}" if rated else "", *(p[f"attributes_{k}"] for k in keys)])
+                         loan, minutes(p), rating(p), *(p[f"attributes_{k}"] for k in keys)])
         if rows:
             out = save_dir / "obs" / f"{date}_{slug}_{view}.csv"
             with open(out, "w", newline="", encoding="utf-8") as f:
@@ -681,10 +782,11 @@ def import_save(save, config, save_file=None):
                 wr.writerows(rows)
             written.append(f"obs/{out.name} ({len(rows)})")
 
+    # The club's staff, as a staff screen
     staff_keys = sorted(k[11:] for k in (staff[0] if staff else {}) if k.startswith("attributes_"))
     rows = [[s["name"], managed, s["age"], "" if s["job"] in ("", "unknown") else fm_name(s["job"]), "",
              *(staff_word(k, int(s[f"attributes_{k}"]), words) if s[f"attributes_{k}"] else "" for k in staff_keys)]
-            for s in sorted(staff, key=lambda s: s["name"])
+            for s in sorted(staff, key=lambda s: s["name"]) if s["club_uid"] == uid
             if s["is_human_manager"] != "true" and s["job"] not in BOARD_JOBS and any(s[f"attributes_{k}"] for k in staff_keys)]
     if rows:
         out = save_dir / "staff" / f"{date}_{slug}.csv"
@@ -693,6 +795,30 @@ def import_save(save, config, save_file=None):
             wr.writerow(["Name", "Club", "Age", "Job", "Personality", *map(fm_name, staff_keys)])
             wr.writerows(rows)
         written.append(f"staff/{out.name} ({len(rows)})")
+
+    # Every player in the game (men's football), for the players page: one gzipped file per import, so history builds up
+    rows, nameless = [], 0
+    for p in players:
+        c = clubs.get(p["club_uid"])
+        if c and c["gender"] == "women":
+            continue
+        if not p["name"] or not p["age"]:  # fmsave couldn't read who they are: no use for a search in FM
+            nameless += 1
+            continue
+        rows.append([p["uid"], p["name"], p["age"], managed if p["club_uid"] == uid else c["short_name"] if c else "",
+                     divs.get(p["club_uid"], ""), nations.get(p["nation_id"], ""), p["reputation_current"], p["left_foot"],
+                     round(float(p["contract_wage"]) * rate) if p["contract_wage"] else "",
+                     round(float(p["transfer_value"]) * rate) if p["transfer_value_state"] == "ok" and p["transfer_value"] else "",
+                     1 if keeper(p) else "", minutes(p) or "", rating(p), *(p[f"attributes_{k}"] for k in attrs)])
+    (save_dir / "world").mkdir(exist_ok=True)
+    out = save_dir / "world" / f"{date}.csv.gz"
+    with gzip.open(out, "wt", newline="", encoding="utf-8") as f:
+        wr = csv.writer(f, lineterminator="\n")
+        wr.writerow([*WORLD_META, *map(fm_name, attrs)])
+        wr.writerows(rows)
+    written.append(f"world/{out.name} ({len(rows)}{f'; {nameless} without a name left out' if nameless else ''})")
+    for db, names in unnamed.items():
+        print(f"League {db} ({', '.join(names)}, …) has no code: add it to leagues/divisions.toml's [divisions]")
 
     # a new squad screen and staff screen: whoever's gone, joined or come back since the last one is now in the files
     text = (save_dir / "save.toml").read_text(encoding="utf-8")

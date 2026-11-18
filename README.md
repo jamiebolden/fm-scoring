@@ -8,9 +8,10 @@ FM can't export its data, so this works from screenshots. You take screenshots o
 AI assistant (Claude Code or Codex) reads them for you and updates your pages. You never need to type
 any data in yourself.
 
-For your own club there's a shortcut: the assistant can read your squad and staff straight from FM's save file, with
-[fmsave](https://github.com/rhiever/fmsave). Save in FM and say **"update from my save"**. Other clubs' players still
-come from screenshots, because the save holds their true attributes, not what your scouts know.
+There's a shortcut: the assistant can read your squad, your staff and every player in the game straight from FM's save
+file, with [fmsave](https://github.com/rhiever/fmsave). Save in FM and say **"update from my save"**. The save holds
+every player's true attributes, which is what FM shows you if you play with attribute masking off. With it on, the
+players page shows more than your scouts know.
 
 Works on Mac, Windows and Linux.
 
@@ -187,7 +188,7 @@ Press the number keys to move between pages, and **?** on any page for its keybo
 | Key | Page | What's on it |
 |---|---|---|
 | 1 | Your squad | Every player at your club, scored for each position |
-| 2 | Elsewhere | Every other player you've screenshotted |
+| 2 | Players | Every player in the game, from your save file (or every other player you've screenshotted). Toggles narrow it to likely signings |
 | 3 | Last | Just the players from your latest screenshots |
 | 4 | Filters | Your best players per position, and minimum attributes to search FM for players better than them |
 | 5 | Charts | Your squad against a whole league: scores, key attributes and ratings |

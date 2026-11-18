@@ -4,4 +4,4 @@ screenshots_dir = "~/Desktop"      # where your screenshots are saved (Windows: 
 currency = "£"                     # the money symbol FM shows
 # For `score.py import` (reading the save file), both optional:
 # money_rate = 1.17                # the save stores pounds: × this for the currency FM shows you (here €)
-# fmsave = "fmsave"                # how to run fmsave, if not uvx (https://docs.astral.sh/uv/) or fmsave on PATH
+# fmsave_python = "python3.12"     # a Python 3.12+ with fmsave installed, if not uv (https://docs.astral.sh/uv/)

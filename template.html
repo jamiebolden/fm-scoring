@@ -69,13 +69,22 @@ __THEME__
   .helphint { color: var(--dim); text-decoration: none; white-space: nowrap; }
   .helphint b { color: var(--fg); font-weight: normal; }
   .tiles td.wrap { white-space: normal; }
+  #toggles { display: none; gap: 6px; white-space: nowrap; }
+  #toggles button { font: inherit; font-size: 12px; color: var(--dim); background: transparent; border: 1px solid var(--line);
+                    padding: 1px 8px; cursor: pointer; }
+  #toggles button.on { color: var(--cyan); border-color: var(--cyan); }
+  #toggles button u { text-decoration: none; color: var(--fg); }
+  #pager { display: none; color: var(--dim); white-space: nowrap; user-select: none; }
+  #pager a { color: var(--cyan); cursor: pointer; padding: 0 4px; }
 </style>
 </head>
 <body>
 <div class="bar">
   <span class="pages">__NAV__</span>
   <input id="filter" placeholder="/ filter  e.g. age<=24 best=CB vs>=90 left=yes" spellcheck="false" autocomplete="off">
+  <span id="toggles"></span>
   <span id="count"></span>
+  <span id="pager"><a id="prev">‹</a><a id="next">›</a></span>
   <span id="batch" title="b: older batch · B: newer"></span>
   <a class="helphint" href="#" id="helphint"><b>?</b> keyboard shortcuts</a>
 </div>
@@ -89,7 +98,7 @@ __THEME__
 <div id="help"><div class="tile">
   <div class="ttitle">keyboard shortcuts</div>
   <table>
-    <tr><td><b>1</b> … <b>8</b></td><td>__HOME__ · elsewhere · last screenshots · filters · charts · staff · last staff screenshots · staff filters</td></tr>
+    <tr><td><b>1</b> … <b>8</b></td><td>__HOME__ · players · last screenshots · filters · charts · staff · last staff screenshots · staff filters</td></tr>
     <tr><td><b>← ↑ ↓ →</b></td><td>move the cell cursor</td></tr>
     <tr><td><b>enter</b></td><td>player (or staff) history over time (or double-click a row; <b>esc</b> closes)</td></tr>
     <tr><td><b>s</b> (in history)</td><td>%win (or GKpts) table: outline in orange the player's levels when first observed (where they started); again to hide</td></tr>
@@ -97,10 +106,12 @@ __THEME__
     <tr><td><b>s</b></td><td>sort by the cursor's column (again to reverse)</td></tr>
     <tr><td><b>/</b> or <b>f</b></td><td>filter box (<b>enter</b> / <b>esc</b> to leave it)</td></tr>
     <tr><td><b>esc</b></td><td>clear the filter</td></tr>
+    <tr><td><b>pgdn</b> / <b>pgup</b></td><td>next / previous 100 rows (or <b>n</b> / <b>p</b>, or ‹ ›; the cursor moves on past the last row too)</td></tr>
+    <tr><td><b>r</b> <b>e</b> <b>l</b></td><td>players page from the save: reputation up to your squad's best · clubs in England (and English free agents) · your division and below</td></tr>
     <tr><td><b>b</b> / <b>B</b></td><td>last screenshots pages: the previous / next of the last few batches (or click the batch name)</td></tr>
     <tr><td><b>?</b></td><td>show / hide this</td></tr>
     <tr><td colspan="2" class="sub">filters: <b>col:text</b> contains · <b>col=x</b> · <b>col!=x</b> · <b>col&lt;n</b> <b>col&lt;=n</b> <b>col&gt;n</b> <b>col&gt;=n</b><br>
-      money: <b>wage&lt;=1k</b> <b>value&lt;=500k</b> (value = top of FM's range) · plain words match name / club, or <b>loan-in</b> / <b>loan-out</b> / <b>trial</b> / <b>u18</b> · e.g. <b>club:gent age&lt;=24 best!=GK vs&gt;=90 left=yes</b></td></tr>
+      money: <b>wage&lt;=1k</b> <b>value&lt;=500k</b> (value = top of FM's range) · plain words match name / club / division (<b>div=eng4</b>), or <b>loan-in</b> / <b>loan-out</b> / <b>trial</b> / <b>u18</b> · e.g. <b>club:gent age&lt;=24 best!=GK vs&gt;=90 left=yes</b></td></tr>
   </table>
 </div></div>
 <script>
@@ -127,6 +138,57 @@ const WIN = __WIN__;  // { attribute: %win at levels 1–18 }, biggest effect fi
 const PTS = __PTS__;  // keepers: { attribute: points a season at levels 1–20 }, biggest effect first
 const ALIASES = { lefty: "left", leftfoot: "left", player: "name", pos: "best", position: "best", vs: "vsAge" };
 const STORE = "fm:__SAVE__:" + PAGE;
+
+// The players page from the save (score.py world_page): compact rows, decoded and scored here, the same way score.py scores
+const WORLD = DATA && DATA.world ? DATA : null;
+const POSITIONS = COLS.filter(c => c.fmt === "f1").map(c => c.key);
+const lerp = (x0, y0, x1, y1, x) => y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+const curveValue = (p, x) => x < 6 ? lerp(1, p[0], 6, p[1], x) : x < 12 ? lerp(6, p[1], 12, 0, x) : lerp(12, 0, 18, p[2], x);
+const PTS_LEVELS = [1, 8, 12, 16, 20];
+const ptsValue = (p, x) => {
+  const ys = [p[0], p[1], 0, p[2], p[3]], i = x < 16 ? [1, 2, 3].find(i => x < PTS_LEVELS[i]) : 4;
+  return lerp(PTS_LEVELS[i - 1], ys[i - 1], PTS_LEVELS[i], ys[i], x);
+};
+const FOOT = [[20, "Very Strong"], [15, "Strong"], [12, "Fairly Strong"], [9, "Reasonable"], [5, "Weak"], [1, "Very Weak"]];
+const footWord = v => v == null ? null : FOOT.find(([lo]) => v >= lo)?.[1] ?? null;
+const decodeAttrs = s => {  // "MKO-…": one letter per attribute, A = 1 … T = 20, - = unknown
+  const a = {};
+  for (let i = 0; i < s.length; i++) if (s[i] !== "-") a[WORLD.attrs[i]] = s.charCodeAt(i) - 64;
+  return a;
+};
+function scoreAttrs(attrs, keeper, age) {  // score.py's player_row: positions, best, vs Age, %win, GKpts
+  const S = WORLD.scoring, out = {};
+  for (const k of keeper ? ["GK"] : POSITIONS.filter(k => k !== "GK")) {
+    const w = WEIGHTS[k];
+    let sum = 0, tot = 0, ok = !!w;
+    for (const a in w) { if (attrs[a] == null) { ok = false; break; } sum += attrs[a] * w[a]; tot += w[a]; }
+    if (ok) out[k] = sum / tot;
+  }
+  const keys = POSITIONS.filter(k => k in out);  // in the weights file's order, as score.py breaks ties (Object.keys puts "6" first)
+  if (!keys.length) return out;
+  out.best = keys.reduce((a, b) => out[b] > out[a] ? b : a);
+  out.score = out[out.best];
+  const ages = Object.keys(S.age).map(Number), lo = Math.min(...ages), hi = Math.max(...ages);
+  out.vsAge = out.score / S.age[Math.min(Math.max(age ?? lo, lo), hi)];
+  out.win = keeper || !Object.keys(S.win).length ? null : Object.entries(S.win).reduce((t, [a, p]) => attrs[a] == null ? t : t + curveValue(p, attrs[a]), 0);
+  out.pts = keeper && Object.keys(S.gk_pts).length ? Object.entries(S.gk_pts).reduce((t, [a, p]) => attrs[a] == null ? t : t + ptsValue(p, attrs[a]), 0) : null;
+  return out;
+}
+const ROWS = !WORLD ? DATA : WORLD.rows.map(([uid, name, ci, di, nat, age, foot, wage, value, rep, keeper, minutes, rating, s]) => ({
+  uid, name, club: WORLD.clubs[ci] || "Free agent", div: WORLD.divs[di] || null, nat, age, foot, wage, value, valueLo: value, rep,
+  keeper: !!keeper, minutes, rating, s, left: foot == null ? null : foot >= 12 ? "yes" : "no", ...scoreAttrs(decodeAttrs(s), !!keeper, age),
+}));
+// Toggles (players page from the save), on by default: likely signings. "lower": your division's tier and below
+const tierOf = d => { const m = /^[A-Z]{3}(\d+)/.exec(d || ""); return m ? +m[1] : null; };
+const MY_TIER = WORLD && tierOf(WORLD.myDiv);
+const TOGGLES = !WORLD ? [] : [
+  { key: "rep", hint: "r", label: "<u>r</u>ep cap", title: `reputation up to ${WORLD.managed}'s best player's`, test: r => WORLD.cap == null || r.rep <= WORLD.cap },
+  { key: "eng", hint: "e", label: "<u>E</u>ngland", title: "clubs in England's leagues, and English free agents", test: r => r.div ? r.div.startsWith("ENG") : r.nat === "ENG" },
+  { key: "lower", hint: "l", label: "<u>l</u>ower divs", title: `${WORLD.myDiv || "your division"} and below`, test: r => { const t = tierOf(r.div); return t == null || MY_TIER == null || t >= MY_TIER; } },
+];
+let toggles = Object.fromEntries(TOGGLES.map(t => [t.key, true]));
+const PAGE_ROWS = 100;
+let pageStart = 0, base = [];
 const input = document.getElementById("filter"), help = document.getElementById("help"), detail = document.getElementById("detail");
 let sortKey = COLS.some(c => c.key === "vsAge") ? "vsAge" : COLS.find(c => c.num && c.fmt)?.key, dir = -1, cur = { r: 0, c: 0 }, view = [];
 
@@ -134,9 +196,10 @@ try {
   const s = JSON.parse(localStorage.getItem(STORE) || "{}");
   if (s.sortKey && COLS.some(c => c.key === s.sortKey)) ({ sortKey, dir } = s);
   input.value = s.q || "";
+  if (s.toggles) toggles = { ...toggles, ...s.toggles };
 } catch (e) {}
 function save() {
-  try { localStorage.setItem(STORE, JSON.stringify({ sortKey, dir, q: input.value })); } catch (e) {}
+  try { localStorage.setItem(STORE, JSON.stringify({ sortKey, dir, q: input.value, toggles })); } catch (e) {}
 }
 
 function tier(v, [lo, hi]) {
@@ -157,7 +220,7 @@ function parseFilter(q) {
     const m = tok.match(/^([^:=<>!]+)(<=|>=|!=|<|>|=|:)(.*)$/);
     if (!m) {
       const t = tok.replace(/"/g, "").toLowerCase();
-      return r => `${r.name} ${r.club || ""} ${r.team || ""} ${r.loan ? loanLabel(r).replace(" ", "-") : ""}`.toLowerCase().includes(t);
+      return r => `${r.name} ${r.club || ""} ${r.div || ""} ${r.team || ""} ${r.loan ? loanLabel(r).replace(" ", "-") : ""}`.toLowerCase().includes(t);
     }
     const col = findCol(m[1]), op = m[2], raw = m[3].replace(/"/g, "");
     if (!col || raw === "") { bad = true; return () => true; }
@@ -180,18 +243,31 @@ function parseFilter(q) {
   return { tests, bad };
 }
 
-function render() {
+// Filter and sort: on a new filter, sort or toggle (not on cursor moves: 40k+ rows on the players page)
+function refresh() {
   const { tests, bad } = parseFilter(input.value);
   input.classList.toggle("bad", bad);
-  const rows = BATCHES.length ? DATA.filter(r => r.batches.includes(batch)) : DATA;
-  view = rows.filter(r => tests.every(t => t(r))).sort((a, b) => {
+  const on = TOGGLES.filter(t => toggles[t.key]);
+  base = BATCHES.length ? ROWS.filter(r => r.batches.includes(batch)) : on.length ? ROWS.filter(r => on.every(t => t.test(r))) : ROWS;
+  view = base.filter(r => tests.every(t => t(r))).sort((a, b) => {
     const x = a[sortKey], y = b[sortKey];
     if (x == null || y == null) return (x == null) - (y == null);  // blanks always last
     return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * dir;
   });
+}
+
+function render(again = true) {
+  if (again) refresh();
   cur.r = Math.max(0, Math.min(cur.r, view.length - 1));
   cur.c = Math.max(0, Math.min(cur.c, COLS.length - 1));
-  document.getElementById("count").textContent = `${view.length}/${rows.length}`;
+  pageStart = Math.floor(cur.r / PAGE_ROWS) * PAGE_ROWS;  // the page of PAGE_ROWS rows the cursor is on
+  const shown = view.slice(pageStart, pageStart + PAGE_ROWS), n = x => x.toLocaleString("en-GB");
+  document.getElementById("count").textContent = view.length > PAGE_ROWS ?
+    `${n(pageStart + 1)}–${n(pageStart + shown.length)} of ${n(view.length)}/${n(base.length)}` : `${n(view.length)}/${n(base.length)}`;
+  document.getElementById("pager").style.display = view.length > PAGE_ROWS ? "inline" : "none";
+  const tg = document.getElementById("toggles");
+  tg.style.display = TOGGLES.length ? "inline-flex" : "none";
+  tg.innerHTML = TOGGLES.map(t => `<button data-t="${t.key}" class="${toggles[t.key] ? "on" : ""}" title="${t.title} (${t.hint})">${t.label}</button>`).join("");
   if (BATCHES.length) {
     const el = document.getElementById("batch");
     el.style.display = "inline";
@@ -200,7 +276,7 @@ function render() {
   }
   document.getElementById("head").innerHTML = COLS.map((c, ci) =>
     `<th data-key="${c.key}" class="${c.num ? "num" : ""} ${c.key === sortKey ? "sorted " + (dir > 0 ? "asc" : "desc") : ""} ${ci === cur.c ? "curcol" : ""}">${c.label}</th>`).join("");
-  document.getElementById("body").innerHTML = view.map((r, ri) => `<tr class="${ri === cur.r ? "currow" : ""}">` + COLS.map((c, ci) => {
+  document.getElementById("body").innerHTML = shown.map((r, i) => { const ri = pageStart + i; return `<tr class="${ri === cur.r ? "currow" : ""}">` + COLS.map((c, ci) => {
     const v = r[c.key], at = ri === cur.r && ci === cur.c ? " cur" : "";
     if (v == null) return `<td class="${c.num ? "num " : ""}dim${at}">–</td>`;
     if (c.fmt === "money") return `<td class="num${at}">${FMT.money(v)}</td>`;
@@ -209,7 +285,7 @@ function render() {
     if (c.fmt) return `<td class="num ${tier(v, RANGE[c.fmt])}${at}">${FMT[c.fmt](v)}</td>`;
     if (c.key === "name") return `<td class="${at}">${v}${r.team ? `<span class="team">${r.team}</span>` : ""}${r.loan ? `<span class="loan ${r.loan}">${loanLabel(r)}</span>` : ""}</td>`;
     return `<td class="${c.num ? "num" : "text"}${at}">${v}</td>`;
-  }).join("") + "</tr>").join("");
+  }).join("") + "</tr>"; }).join("");
   document.querySelector("td.cur")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   save();
 }
@@ -238,10 +314,14 @@ document.addEventListener("keydown", e => {
   if (PAGES[e.key] && PAGES[e.key] !== PAGE) { location.href = PAGES[e.key] + ".html"; return; }
   if (!TABLE) return;
   const move = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
-  if (move) { cur.r += move[0]; cur.c += move[1]; render(); }
+  const jump = { PageDown: PAGE_ROWS, PageUp: -PAGE_ROWS, n: PAGE_ROWS, p: -PAGE_ROWS }[e.key];
+  const toggle = TOGGLES.find(t => t.hint === e.key);
+  if (move) { cur.r += move[0]; cur.c += move[1]; render(false); }
+  else if (jump) { cur.r = Math.max(0, Math.min(Math.floor(cur.r / PAGE_ROWS) * PAGE_ROWS + jump, view.length - 1)); render(false); }
+  else if (toggle) flip(toggle.key);
   else if (e.key === "s") sortBy(cur.c);
   else if (e.key === "c") document.execCommand("copy");
-  else if (e.key === "Enter" && view[cur.r]) showDetail(view[cur.r]);
+  else if (e.key === "Enter" && view[cur.r]) openDetail(view[cur.r]);
   else if (e.key === "/" || e.key === "f") input.focus();
   else if ((e.key === "b" || e.key === "B") && BATCHES.length > 1) cycleBatch(e.key === "b" ? 1 : -1);
   else if (e.key === "Escape") { input.value = ""; render(); }
@@ -269,6 +349,27 @@ const yearsAgo = d => {
   const y = SITE.gameDate ? ((new Date(SITE.gameDate) - new Date(d)) / 31557600000).toFixed(1) : "0.0";
   return y === "0.0" ? "" : `${y} years`;
 };
+
+// Players page from the save: a player's history is in out/<save>/history/<uid % shards>.js, loaded when first opened
+const SHARDS = {};
+function HISTORY(n, data) { SHARDS[n] = data; }
+function openDetail(r) {
+  if (!WORLD || r.history) return showDetail(r);
+  const n = r.uid % WORLD.shards, build = () => {
+    const H = SHARDS[n]?.[r.uid] || [[WORLD.date, r.age, r.club, r.div, r.foot, r.s]];  // no history file: just today
+    r.history = H.map(([date, age, club, div, foot, s]) => {
+      const attrs = decodeAttrs(s);
+      return { date, age, club: club || "Free agent", leftFoot: footWord(foot), attrs, ...scoreAttrs(attrs, r.keeper, age) };
+    });
+    showDetail(r);
+  };
+  if (SHARDS[n]) return build();
+  const el = document.createElement("script");
+  el.src = `history/${n}.js`;
+  el.onload = el.onerror = build;
+  document.head.appendChild(el);
+}
+function flip(key) { toggles[key] = !toggles[key]; cur.r = 0; render(); }
 
 // Player history: one row per observation date, then attribute values by date
 function showDetail(r) {
@@ -303,7 +404,7 @@ function showDetail(r) {
   document.getElementById("detailbody").innerHTML = `
     <div class="ttitle">${r.name} <span class="sub">· ${[r.club, r.age != null && r.age + "y",
       ...("job" in r ? [r.job, r.personality] : ["left foot " + (last.leftFoot ?? "–"), r.loan && loanLabel(r)])].filter(Boolean).join(" · ")}</span></div>
-    ${H.length === 1 ? `<div class="sub">Only one observation so far (${last.date}); changes appear once you add screenshots from a later game date.</div>` : ""}
+    ${H.length === 1 ? `<div class="sub">Only one observation so far (${last.date}); changes appear once there's a later game date (screenshots or an import).</div>` : ""}
     <table><thead><tr><th>Date</th><th>Club</th><th class="num">Age</th>${pos.map(k => `<th class="num">${k}</th>`).join("")}${win ? `<th class="num">%win</th>` : ""}${pts ? `<th class="num">GKpts</th>` : ""}<th>Best</th>${vs ? `<th class="num">vs Age</th>` : ""}</tr></thead>
       <tbody>${scoreRows}</tbody></table>
     <div class="ttitle">Attributes</div>
@@ -366,12 +467,12 @@ document.getElementById("head").addEventListener("click", e => {
 document.getElementById("body").addEventListener("click", e => {
   const td = e.target.closest("td");
   if (!td || !getSelection().isCollapsed) return;  // re-rendering would drop a text selection
-  cur = { r: td.parentElement.rowIndex - 1, c: td.cellIndex };
-  render();
+  cur = { r: pageStart + td.parentElement.rowIndex - 1, c: td.cellIndex };
+  render(false);
 });
 document.getElementById("body").addEventListener("dblclick", e => {
   const tr = e.target.closest("tr");
-  if (tr) showDetail(view[tr.rowIndex - 1]);
+  if (tr) openDetail(view[pageStart + tr.rowIndex - 1]);
 });
 // Copy with nothing selected: the cursor row's name, minus FM's truncation "…"
 document.addEventListener("copy", e => {
@@ -382,7 +483,7 @@ document.addEventListener("copy", e => {
   const count = document.getElementById("count");
   count.textContent = `copied ${name}`; count.classList.add("copied");
   clearTimeout(count.timer);
-  count.timer = setTimeout(() => { count.classList.remove("copied"); render(); }, 1200);
+  count.timer = setTimeout(() => { count.classList.remove("copied"); render(false); }, 1200);
 });
 input.addEventListener("input", () => { cur.r = 0; render(); });
 function cycleBatch(step) {
@@ -391,6 +492,11 @@ function cycleBatch(step) {
   render();
 }
 document.getElementById("batch").addEventListener("click", () => BATCHES.length > 1 && cycleBatch(1));
+document.getElementById("toggles").addEventListener("click", e => { const b = e.target.closest("button"); if (b) flip(b.dataset.t); });
+for (const [id, step] of [["prev", -PAGE_ROWS], ["next", PAGE_ROWS]])
+  document.getElementById(id).addEventListener("click", () => {
+    cur.r = Math.max(0, Math.min(Math.floor(cur.r / PAGE_ROWS) * PAGE_ROWS + step, view.length - 1)); render(false);
+  });
 help.addEventListener("click", e => { if (e.target === help) help.classList.remove("show"); });
 detail.addEventListener("click", e => { if (e.target === detail) detail.classList.remove("show"); });
 document.getElementById("helphint").addEventListener("click", e => { e.preventDefault(); help.classList.add("show"); });
