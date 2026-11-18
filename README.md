@@ -226,3 +226,11 @@ typical for their age: 100% means they're on track to be a high-end Championship
 player in their prime, once fully developed. More than 100% means they're ahead of that.
 
 The weights are in the `weights` folder. Ask your assistant if you want to change what matters for a position.
+
+---
+
+## Credits
+
+Reading the save file (`score.py import`) started from [Max Frericks](https://github.com/MaxFrericks)'s
+[pull request](https://github.com/jamiebolden/fm-scoring/pull/7): thank you, Max. It's built on
+[fmsave](https://github.com/rhiever/fmsave), which does the hard work of reading FM's save files.
